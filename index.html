@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Card Binder — Clash of Cards Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Luckiest+Guy&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#15142a;
+  --bg-elevated:#1e1c3a;
+  --panel:#242245;
+  --slot:#2b2950;
+  --slot-empty:#201f3d;
+  --ink:#f2ecdd;
+  --ink-dim:#a6a1c4;
+  --ink-faint:#615c86;
+  --gold:#e8b84b;
+  --gold-glow:rgba(232,184,75,.35);
+  --line:#3a3766;
+
+  --elixir:#e0479f;
+  --elixir-dim:#3d1f3a;
+  --darkelixir:#8b5cf6;
+  --darkelixir-dim:#2a2154;
+  --builder:#2fd1c5;
+  --builder-dim:#173d3f;
+  --super:#ff6a3d;
+  --super-dim:#3f2318;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:
+    radial-gradient(circle at 15% 8%, #201e42 0%, transparent 45%),
+    radial-gradient(circle at 85% 92%, #1c1938 0%, transparent 50%),
+    var(--bg);
+  color:var(--ink);
+  font-family:'Inter',sans-serif;
+  min-height:100vh;
+}
+.mono{font-family:'JetBrains Mono',monospace;}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 80px;}
+
+/* ---------- Header ---------- */
+header.app-head{
+  display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-end;
+  padding:22px 24px;border-radius:18px;
+  background:linear-gradient(135deg,#221f45,#181731);
+  border:1px solid var(--line);
+  position:relative;overflow:hidden;
+  margin-bottom:18px;
+}
+header.app-head::before{
+  content:"";position:absolute;inset:0;
+  background:
+    linear-gradient(90deg, transparent 0 96%, rgba(232,184,75,.06) 96% 100%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.02) 0 2px, transparent 2px 14px);
+  pointer-events:none;
+}
+.title-block h1{
+  font-family:'Bungee',cursive;
+  font-size:26px;
+  letter-spacing:.5px;
+  margin:0 0 6px;
+  color:var(--gold);
+  text-shadow:0 2px 0 rgba(0,0,0,.4);
+}
+.title-block p{margin:0;color:var(--ink-dim);font-size:13.5px;max-width:520px;line-height:1.5;}
+.event-clock{
+  text-align:right;font-family:'JetBrains Mono',monospace;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:10px 16px;
+}
+.event-clock .label{font-size:10px;letter-spacing:1.5px;color:var(--ink-faint);text-transform:uppercase;}
+.event-clock .value{font-size:19px;color:var(--gold);font-weight:600;}
+.event-clock .sub{font-size:10.5px;color:var(--ink-dim);margin-top:2px;}
+
+/* ---------- Account bar ---------- */
+.account-bar{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  padding:12px 14px;background:var(--bg-elevated);border:1px solid var(--line);
+  border-radius:14px;margin-bottom:16px;
+}
+.account-bar .label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-faint);margin-right:4px;}
+.chip{
+  padding:7px 14px;border-radius:999px;border:1px solid var(--line);
+  background:var(--panel);color:var(--ink-dim);font-size:13.5px;font-weight:600;
+  cursor:pointer;transition:.15s;white-space:nowrap;
+}
+.chip:hover{border-color:var(--gold);color:var(--ink);}
+.chip.active{
+  background:linear-gradient(135deg,var(--gold),#c9922f);
+  color:#241a05;border-color:transparent;
+}
+.chip.add{background:transparent;border-style:dashed;color:var(--ink-faint);}
+.chip.add:hover{color:var(--gold);border-color:var(--gold);}
+.chip-x{margin-left:8px;opacity:.55;font-weight:400;}
+.chip-x:hover{opacity:1;}
+.chip-pencil{margin-left:8px;opacity:.5;font-weight:400;font-size:12px;display:inline-block;}
+.chip-pencil:hover{opacity:1;}
+.chip.active .chip-pencil,.chip.active .chip-x{opacity:.7;}
+.chip.active .chip-pencil:hover,.chip.active .chip-x:hover{opacity:1;}
+.chip-edit-wrap{display:inline-flex;align-items:center;}
+.chip-input{
+  padding:6.5px 14px;border-radius:999px;
+  border:1px solid var(--gold);background:var(--panel);color:var(--ink);
+  font-size:13.5px;font-weight:600;font-family:inherit;
+  outline:none;min-width:80px;max-width:180px;
+  box-shadow:0 0 0 3px var(--gold-glow);
+}
+
+/* ---------- Nav tabs ---------- */
+.view-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
+.view-tab{
+  padding:9px 16px;border-radius:10px;border:1px solid transparent;
+  background:transparent;color:var(--ink-faint);font-weight:600;font-size:13.5px;
+  cursor:pointer;font-family:inherit;
+}
+.view-tab:hover{color:var(--ink-dim);}
+.view-tab.active{background:var(--panel);color:var(--gold);border-color:var(--line);}
+
+.view{display:none;}
+.view.active{display:block;}
+
+/* ---------- Category tabs + progress ---------- */
+.cat-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
+.cat-card{
+  flex:1 1 220px;border-radius:14px;padding:14px 16px;border:1px solid var(--line);
+  background:var(--panel);cursor:pointer;transition:.15s;
+}
+.cat-card:hover{transform:translateY(-1px);}
+.cat-card .cat-name{font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.cat-dot{width:10px;height:10px;border-radius:3px;flex:none;}
+.cat-progress-track{height:7px;border-radius:4px;background:var(--slot-empty);overflow:hidden;}
+.cat-progress-fill{height:100%;border-radius:4px;}
+.cat-count{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink-dim);margin-top:6px;}
+.cat-card.selected{outline:2px solid var(--gold);}
+
+.overall-bar{
+  display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--bg-elevated);
+  border:1px solid var(--line);border-radius:14px;margin-bottom:20px;
+}
+.overall-bar .ring{
+  width:56px;height:56px;border-radius:50%;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-weight:600;font-size:12px;color:var(--gold);
+  background:conic-gradient(var(--gold) calc(var(--pct,0)*1%), var(--slot-empty) 0);
+  position:relative;
+}
+.overall-bar .ring::before{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--bg-elevated);}
+.overall-bar .ring span{position:relative;z-index:1;}
+.overall-bar .txt{font-size:13px;color:var(--ink-dim);}
+.overall-bar .txt b{color:var(--ink);}
+
+/* ---------- Binder grid (ring holes) ---------- */
+.binder-page{
+  position:relative;background:var(--bg-elevated);border:1px solid var(--line);
+  border-radius:16px;padding:22px 22px 22px 44px;
+}
+.binder-page::before{
+  content:"";position:absolute;left:14px;top:20px;bottom:20px;width:10px;
+  background-image:radial-gradient(circle, var(--bg) 4px, transparent 4.5px);
+  background-size:10px 26px;background-repeat:repeat-y;
+  border-radius:6px;
+}
+.card-grid{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:10px;
+}
+.card-slot{
+  position:relative;border-radius:13px;overflow:hidden;
+  border:2px solid var(--catcolor);
+  aspect-ratio:5/7;display:flex;flex-direction:column;
+  background:var(--bg-elevated);
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+.card-slot:hover{transform:translateY(-2px);}
+
+/* Art window: image is *contained*, not cropped, sitting inside a tinted
+   panel in the card's own category colour — this is what the border colour
+   "becoming" the card's background actually looks like without drowning
+   the artwork or the name in a single flat hue. */
+.card-art{
+  position:relative;flex:1 1 auto;min-height:0;
+  display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--catcolor) 30%, transparent), transparent 72%),
+    var(--catbg, var(--slot));
+  padding:12%;
+}
+.card-art-img{
+  width:100%;height:100%;
+  background-image:var(--cardimg, none);
+  background-size:contain;background-repeat:no-repeat;background-position:center;
+  filter:drop-shadow(0 3px 5px rgba(0,0,0,.55));
+}
+.card-slot.empty .card-art-img{
+  filter:grayscale(1) brightness(.65) contrast(1.1);
+  opacity:.85;
+}
+.card-slot.excluded{opacity:.32;filter:grayscale(.9);}
+
+.card-slot.dup{
+  border-color:var(--gold);
+  box-shadow:0 0 0 2px var(--gold-glow), 0 0 16px var(--gold-glow);
+}
+.card-slot.dup .card-art{
+  background:
+    radial-gradient(circle at 50% 32%, var(--gold-glow), transparent 75%),
+    var(--catbg, var(--slot));
+}
+.card-dup-badge{
+  position:absolute;top:6px;right:6px;z-index:2;
+  background:linear-gradient(135deg,var(--gold),#c9922f);color:#241a05;
+  font-family:'JetBrains Mono',monospace;font-weight:800;font-size:11.5px;
+  padding:2px 8px;border-radius:999px;
+  border:1.5px solid rgba(36,26,5,.35);
+  box-shadow:0 2px 6px rgba(0,0,0,.5);
+}
+
+.card-name{
+  flex:none;text-align:center;line-height:1.2;color:var(--ink);font-weight:400;
+  font-family:'Luckiest Guy',cursive;letter-spacing:.3px;
+  font-size:13.5px;padding:7px 5px 5px;
+  background:rgba(0,0,0,.24);border-top:1px solid rgba(255,255,255,.06);
+}
+.card-slot.empty .card-name{color:var(--ink-faint);}
+
+.card-stepper{display:flex;align-items:stretch;border-top:1px solid rgba(0,0,0,.4);}
+.card-stepper button{
+  flex:1;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;
+  font-weight:700;font-size:15px;padding:5px 0;line-height:1;transition:.12s;
+}
+.card-stepper button[data-action="dec"]{background:var(--panel);color:var(--ink-dim);}
+.card-stepper button[data-action="dec"]:hover:not(:disabled){background:var(--slot-empty);color:var(--ink);}
+.card-stepper button[data-action="inc"]{background:linear-gradient(135deg,var(--gold),#c9922f);color:#241a05;}
+.card-stepper button[data-action="inc"]:hover{filter:brightness(1.08);}
+.card-stepper button:disabled{opacity:.35;cursor:default;}
+.card-stepper .count{
+  flex:none;width:28px;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;
+  background:var(--bg-elevated);color:var(--ink);
+}
+.excl-tag{
+  text-align:center;font-size:9px;letter-spacing:.4px;text-transform:uppercase;
+  color:var(--ink-faint);padding:7px 2px;background:var(--panel);
+}
+
+/* ---------- Matrix view ---------- */
+.matrix-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--bg-elevated);}
+table.matrix{border-collapse:collapse;width:100%;font-size:12.5px;}
+table.matrix th, table.matrix td{padding:7px 10px;text-align:center;white-space:nowrap;}
+table.matrix thead th{
+  position:sticky;top:0;background:var(--panel);color:var(--gold);font-weight:700;
+  border-bottom:1px solid var(--line);z-index:2;
+}
+table.matrix td.rowlabel, table.matrix th.corner{
+  position:sticky;left:0;background:var(--panel);text-align:left;font-weight:600;
+  z-index:1;border-right:1px solid var(--line);
+}
+table.matrix th.corner{z-index:3;}
+table.matrix tr.cat-sep td{background:var(--bg);font-weight:700;color:var(--catcolor);text-align:left;padding-top:12px;}
+table.matrix td.cell{font-family:'JetBrains Mono',monospace;}
+.cell-0{color:var(--ink-faint);}
+.cell-1{color:var(--ink);}
+.cell-dup{color:var(--gold);font-weight:700;background:rgba(232,184,75,.08);border-radius:6px;}
+
+/* ---------- Trade finder ---------- */
+.trade-select{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:18px;}
+.trade-select select{
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;
+  padding:9px 12px;font-family:inherit;font-size:14px;
+}
+.trade-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:700px){.trade-cols{grid-template-columns:1fr;}}
+.trade-col{background:var(--bg-elevated);border:1px solid var(--line);border-radius:14px;padding:16px;}
+.trade-col h3{margin:0 0 12px;font-size:14px;color:var(--gold);}
+.trade-item{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:8px;background:var(--panel);margin-bottom:6px;font-size:13px;
+}
+.trade-item .tag{font-size:10px;padding:2px 7px;border-radius:999px;color:#fff;white-space:nowrap;}
+.trade-item-right{display:flex;align-items:center;gap:8px;flex:none;}
+.btn.tiny{padding:5px 10px;font-size:11.5px;border-radius:7px;white-space:nowrap;}
+.log-time{font-size:11px;color:var(--ink-faint);white-space:nowrap;}
+.empty-note{color:var(--ink-faint);font-size:13px;padding:10px 2px;}
+
+/* ---------- Import / export & editor ---------- */
+.panel-box{background:var(--bg-elevated);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;}
+.panel-box h3{margin:0 0 8px;color:var(--gold);font-size:15px;}
+.panel-box p{color:var(--ink-dim);font-size:13px;line-height:1.5;}
+textarea{
+  width:100%;min-height:110px;background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  border-radius:10px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:12.5px;resize:vertical;
+}
+.btn{
+  background:linear-gradient(135deg,var(--gold),#c9922f);color:#241a05;border:none;
+  padding:9px 16px;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;
+}
+.btn.secondary{background:var(--panel);color:var(--ink);border:1px solid var(--line);}
+.btn.danger{background:#4a2130;color:#ffb4c6;border:1px solid #6b2f42;}
+.btn-row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
+.status-msg{font-size:12.5px;margin-top:8px;color:var(--builder);}
+
+.editor-row{
+  display:grid;grid-template-columns:1fr 1fr 130px 90px;gap:8px;align-items:center;
+  padding:8px 0;border-bottom:1px solid var(--line);
+}
+.editor-row input, .editor-row select{
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+  padding:7px 9px;font-family:inherit;font-size:13px;width:100%;
+}
+@media(max-width:640px){.editor-row{grid-template-columns:1fr;}}
+
+.loading{text-align:center;padding:60px 20px;color:var(--ink-dim);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="loading">Loading your binder…</div>
+</div>
+
+<script>
+const STORAGE_KEY = "coc-cards-app-data";
+
+const CATEGORIES = [
+  {key:"elixir",      label:"Elixir Troops",       color:"var(--elixir)",      hex:"#ff2e9a", dim:"var(--elixir-dim)"},
+  {key:"darkElixir",  label:"Dark Elixir Troops",  color:"var(--darkelixir)",  hex:"#7c3aed", dim:"var(--darkelixir-dim)"},
+  {key:"builderBase", label:"Builder Base Troops", color:"var(--builder)",     hex:"#00d4c8", dim:"var(--builder-dim)"},
+  {key:"superTroop",  label:"Super Troops",        color:"var(--super)",       hex:"#ff5722", dim:"var(--super-dim)"}
+];
+
+// Official droptable order, as confirmed by the user from the in-game Collection screen.
+const DEFAULT_CARDS = [
+  // Elixir Troops (19)
+  ["elixir","barbarian","Barbarian"],["elixir","archer","Archer"],["elixir","giant","Giant"],
+  ["elixir","goblin","Goblin"],["elixir","wall-breaker","Wall Breaker"],["elixir","balloon","Balloon"],
+  ["elixir","wizard","Wizard"],["elixir","healer","Healer"],["elixir","dragon","Dragon"],
+  ["elixir","pekka","P.E.K.K.A"],["elixir","baby-dragon","Baby Dragon"],["elixir","miner","Miner"],
+  ["elixir","electro-dragon","Electro Dragon"],["elixir","yeti","Yeti"],["elixir","dragon-rider","Dragon Rider"],
+  ["elixir","electro-titan","Electro Titan"],["elixir","root-rider","Root Rider"],["elixir","thrower","Thrower"],
+  ["elixir","meteor-golem","Meteor Golem"],
+  // Dark Elixir Troops (13)
+  ["darkElixir","minion","Minion"],["darkElixir","hog-rider","Hog Rider"],["darkElixir","valkyrie","Valkyrie"],
+  ["darkElixir","golem","Golem"],["darkElixir","witch","Witch"],["darkElixir","lava-hound","Lava Hound"],
+  ["darkElixir","bowler","Bowler"],["darkElixir","ice-golem","Ice Golem"],["darkElixir","headhunter","Headhunter"],
+  ["darkElixir","apprentice-warden","Apprentice Warden"],["darkElixir","druid","Druid"],["darkElixir","furnace","Furnace"],
+  ["darkElixir","ruin-witch","Ruin Witch"],
+  // Builder Base Troops (11)
+  ["builderBase","raged-barbarian","Raged Barbarian"],["builderBase","sneaky-archer","Sneaky Archer"],
+  ["builderBase","boxer-giant","Boxer Giant"],["builderBase","beta-minion","Beta Minion"],
+  ["builderBase","bomber","Bomber"],["builderBase","baby-dragon-bb","Baby Dragon"],
+  ["builderBase","cannon-cart","Cannon Cart"],["builderBase","night-witch","Night Witch"],
+  ["builderBase","drop-ship","Drop Ship"],["builderBase","power-pekka","Power P.E.K.K.A"],
+  ["builderBase","hog-glider","Hog Glider"],
+  // Super Troops (17)
+  ["superTroop","super-barbarian","Super Barbarian"],["superTroop","super-archer","Super Archer"],
+  ["superTroop","super-giant","Super Giant"],["superTroop","sneaky-goblin","Sneaky Goblin"],
+  ["superTroop","super-wall-breaker","Super Wall Breaker"],["superTroop","rocket-balloon","Rocket Balloon"],
+  ["superTroop","super-wizard","Super Wizard"],["superTroop","super-dragon","Super Dragon"],
+  ["superTroop","inferno-dragon","Inferno Dragon"],["superTroop","super-miner","Super Miner"],
+  ["superTroop","super-yeti","Super Yeti"],["superTroop","super-minion","Super Minion"],
+  ["superTroop","super-hog-rider","Super Hog Rider"],["superTroop","super-valkyrie","Super Valkyrie"],
+  ["superTroop","super-witch","Super Witch"],["superTroop","ice-hound","Ice Hound"],
+  ["superTroop","super-bowler","Super Bowler"]
+].map(([category,id,name]) => ({id,category,name,excluded:false}));
+
+const SCHEMA_VERSION = 2;
+const ID_RENAME_MAP = { "super-pekka-bb":"power-pekka" }; // old id -> new id, so logged counts survive the rebuild
+
+let DATA = null;
+let currentView = "binder";
+let currentCategory = "elixir";
+let tradeA = null, tradeB = null;
+let editingAccount = null;
+
+function catInfo(key){ return CATEGORIES.find(c=>c.key===key); }
+
+function migrateToOfficialRoster(data){
+  // Replaces the reconstructed card list with the confirmed official droptable,
+  // carrying over any counts already logged (remapping ids that changed names).
+  if(data.schemaVersion === SCHEMA_VERSION) return false;
+  Object.values(data.collections || {}).forEach(col=>{
+    Object.keys(ID_RENAME_MAP).forEach(oldId=>{
+      if(col[oldId] !== undefined){
+        const newId = ID_RENAME_MAP[oldId];
+        col[newId] = (col[newId] || 0) + col[oldId];
+        delete col[oldId];
+      }
+    });
+  });
+  data.cards = DEFAULT_CARDS.map(c=>({...c}));
+  data.schemaVersion = SCHEMA_VERSION;
+  return true;
+}
+
+async function loadData(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    if(res && res.value){
+      const existing = JSON.parse(res.value);
+      if(migrateToOfficialRoster(existing)) await saveData(existing);
+      return existing;
+    }
+  }catch(e){ /* key doesn't exist yet */ }
+  const seed = {
+    cards: DEFAULT_CARDS.map(c=>({...c})),
+    accounts: ["Clasher"],
+    collections: { "Clasher": {} },
+    selectedAccount: "Clasher",
+    schemaVersion: SCHEMA_VERSION
+  };
+  await saveData(seed);
+  return seed;
+}
+
+async function saveData(data){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(data), false);
+  }catch(e){
+    console.error("Storage save failed", e);
+    flashStatus("⚠ Could not save — your last change may not persist.");
+  }
+}
+
+let statusTimer = null;
+function flashStatus(msg){
+  const el = document.getElementById("status-msg");
+  if(!el) return;
+  el.textContent = msg;
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(()=>{ el.textContent=""; }, 2500);
+}
+
+function activeCards(){ return DATA.cards.filter(c=>!c.excluded); }
+function cardsInCat(cat){ return DATA.cards.filter(c=>c.category===cat && !c.excluded); }
+
+function getCount(account, cardId){
+  return (DATA.collections[account] && DATA.collections[account][cardId]) || 0;
+}
+function setCount(account, cardId, val){
+  val = Math.max(0, val);
+  if(!DATA.collections[account]) DATA.collections[account] = {};
+  DATA.collections[account][cardId] = val;
+  saveData(DATA);
+}
+
+/* ---------------- Rendering ---------------- */
+
+function render(){
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    ${renderHeader()}
+    ${renderAccountBar()}
+    ${renderViewTabs()}
+    <div class="view ${currentView==='binder'?'active':''}" id="view-binder">${renderBinderView()}</div>
+    <div class="view ${currentView==='matrix'?'active':''}" id="view-matrix">${renderMatrixView()}</div>
+    <div class="view ${currentView==='trade'?'active':''}" id="view-trade">${renderTradeView()}</div>
+    <div class="view ${currentView==='data'?'active':''}" id="view-data">${renderDataView()}</div>
+    <div class="view ${currentView==='editor'?'active':''}" id="view-editor">${renderEditorView()}</div>
+  `;
+  attachHandlers();
+}
+
+function renderHeader(){
+  const now = new Date();
+  const tradeClose = new Date(Date.UTC(2026,8,2,8,0,0)); // Sep 2 2026 08:00 UTC
+  const msLeft = tradeClose - now;
+  let clockVal, clockSub;
+  if(msLeft > 0){
+    const days = Math.floor(msLeft/86400000);
+    const hrs = Math.floor((msLeft%86400000)/3600000);
+    clockVal = `${days}d ${hrs}h`;
+    clockSub = "until trading closes";
+  } else {
+    clockVal = "Closed";
+    clockSub = "trading window has ended";
+  }
+  return `
+  <header class="app-head">
+    <div class="title-block">
+      <h1>🃏 Card Binder</h1>
+      <p>One binder, every clan account. Spot duplicates and trades at a glance. Trading closes Sep&nbsp;2, 08:00&nbsp;UTC.</p>
+    </div>
+    <div class="event-clock">
+      <div class="label">Trading window</div>
+      <div class="value">${clockVal}</div>
+      <div class="sub">${clockSub}</div>
+    </div>
+  </header>`;
+}
+
+function renderAccountBar(){
+  const chips = DATA.accounts.map(a => {
+    if(a === editingAccount){
+      return `
+      <span class="chip-edit-wrap">
+        <input type="text" class="chip-input" id="account-name-input" value="${escAttr(a)}" maxlength="24" autocomplete="off">
+      </span>`;
+    }
+    return `
+    <button class="chip ${a===DATA.selectedAccount?'active':''}" data-action="select-account" data-account="${escAttr(a)}">
+      ${escHtml(a)}
+      <span class="chip-pencil" data-action="edit-account-name" data-account="${escAttr(a)}" title="Rename account">✎</span>
+      ${DATA.accounts.length>1 ? `<span class="chip-x" data-action="delete-account" data-account="${escAttr(a)}" title="Remove account">✕</span>` : ''}
+    </button>`;
+  }).join("");
+  return `
+  <div class="account-bar">
+    <span class="label">Accounts</span>
+    ${chips}
+    <button class="chip add" data-action="add-account">+ Add account</button>
+  </div>`;
+}
+
+function focusAccountInput(){
+  requestAnimationFrame(()=>{
+    const input = document.getElementById("account-name-input");
+    if(input){ input.focus(); input.select(); }
+  });
+}
+
+function nextTempAccountName(){
+  if(!DATA.accounts.includes("Clasher")) return "Clasher";
+  let n = 2;
+  while(DATA.accounts.includes(`Clasher ${n}`)) n++;
+  return `Clasher ${n}`;
+}
+
+function finishAccountEdit(cancel){
+  if(editingAccount===null) return;
+  const input = document.getElementById("account-name-input");
+  const original = editingAccount;
+  editingAccount = null;
+  if(!input || cancel){ render(); return; }
+
+  const val = input.value.trim();
+  if(!val || val===original){ render(); return; }
+
+  if(DATA.accounts.includes(val)){
+    alert(`You already have an account named "${val}".`);
+    editingAccount = original;
+    render();
+    focusAccountInput();
+    return;
+  }
+
+  const idx = DATA.accounts.indexOf(original);
+  if(idx===-1){ render(); return; }
+  DATA.accounts[idx] = val;
+  DATA.collections[val] = DATA.collections[original];
+  delete DATA.collections[original];
+  if(DATA.selectedAccount===original) DATA.selectedAccount = val;
+  if(tradeA===original) tradeA = val;
+  if(tradeB===original) tradeB = val;
+  if(DATA.tradeLog){
+    DATA.tradeLog.forEach(t=>{
+      if(t.from===original) t.from = val;
+      if(t.to===original) t.to = val;
+    });
+  }
+  saveData(DATA);
+  render();
+}
+
+function renderViewTabs(){
+  const tabs = [
+    ["binder","My Binder"],
+    ["matrix","Collection Matrix"],
+    ["trade","Trade Finder"],
+    ["data","Import / Export"],
+    ["editor","Card List"]
+  ];
+  return `<div class="view-tabs">${tabs.map(([k,label])=>`
+    <button class="view-tab ${currentView===k?'active':''}" data-action="set-view" data-view="${k}">${label}</button>
+  `).join("")}</div>`;
+}
+
+function renderBinderView(){
+  const acct = DATA.selectedAccount;
+  const all = activeCards();
+  const ownedTotal = all.filter(c => getCount(acct,c.id) > 0).length;
+  const pct = all.length ? Math.round(ownedTotal/all.length*100) : 0;
+
+  const catCards = CATEGORIES.map(cat=>{
+    const cards = cardsInCat(cat.key);
+    const owned = cards.filter(c=>getCount(acct,c.id)>0).length;
+    const p = cards.length ? Math.round(owned/cards.length*100) : 0;
+    return `
+    <div class="cat-card ${currentCategory===cat.key?'selected':''}" data-action="set-category" data-cat="${cat.key}" style="--catcolor:${cat.hex}">
+      <div class="cat-name"><span class="cat-dot" style="background:${cat.color}"></span>${cat.label}</div>
+      <div class="cat-progress-track"><div class="cat-progress-fill" style="width:${p}%;background:${cat.color}"></div></div>
+      <div class="cat-count">${owned} / ${cards.length} collected</div>
+    </div>`;
+  }).join("");
+
+  // One continuous grid, 6 across, in official droptable order — same layout logic
+  // as the in-game HUD, so a category's first card can land mid-row (e.g. Minion
+  // sitting in slot 2 right after Meteor Golem finishes off the Elixir rows).
+  const cardsHtml = all.map(c => renderCardSlot(acct, c, catInfo(c.category))).join("");
+
+  return `
+  <div class="overall-bar" style="--pct:${pct}">
+    <div class="ring"><span>${pct}%</span></div>
+    <div class="txt"><b>${escHtml(acct)}</b> has collected <b>${ownedTotal}</b> of <b>${all.length}</b> tradeable cards.</div>
+  </div>
+  <div class="cat-row">${catCards}</div>
+  <div class="binder-page">
+    <div class="card-grid">${cardsHtml}</div>
+  </div>`;
+}
+
+function renderCardSlot(acct, card, cat){
+  const n = getCount(acct, card.id);
+  const isExcluded = card.excluded;
+  let cls = "card-slot";
+  if(isExcluded) cls += " excluded";
+  else if(n>=2) cls += " owned dup";
+  else if(n===1) cls += " owned";
+  else cls += " empty";
+
+  const img = imageFor(card);
+  const imgVar = img ? `--cardimg:url('${img.replace(/'/g,"%27")}');` : "";
+  const badge = (!isExcluded && n>=2) ? `<div class="card-dup-badge">×${n}</div>` : "";
+
+  const stepper = isExcluded ? `<div class="excl-tag">Not in event</div>` : `
+    <div class="card-stepper">
+      <button data-action="dec" data-card="${escAttr(card.id)}" ${n<=0?'disabled':''}>−</button>
+      <span class="count">${n}</span>
+      <button data-action="inc" data-card="${escAttr(card.id)}">+</button>
+    </div>`;
+
+  return `
+  <div id="slot-${escAttr(card.id)}" class="${cls}" style="--catcolor:${cat.hex};--catbg:${cat.dim};${imgVar}" title="${escAttr(card.name)}">
+    <div class="card-art"><div class="card-art-img"></div>${badge}</div>
+    <div class="card-name">${escHtml(card.name)}</div>
+    ${stepper}
+  </div>`;
+}
+
+function scrollToCategory(catKey){
+  currentCategory = catKey;
+  render();
+  requestAnimationFrame(()=>{
+    const cards = cardsInCat(catKey);
+    if(!cards.length) return;
+    const el = document.getElementById('slot-'+cards[0].id);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+}
+
+/* Two-tone colors per card, reflecting each troop's real dominant coloring
+   (e.g. Goblin -> green) rather than any copyrighted artwork — used as a
+   paint-blob gradient behind the card name. Falls back to a category tint
+   for anything not explicitly mapped (e.g. custom cards added later). */
+const CARD_COLORS = {
+  // Elixir
+  "barbarian":"#FFC93C", "archer":"#FF4FA3", "giant":"#4FA8FF",
+  "goblin":"#5BE85A", "wall-breaker":"#FF5A36", "balloon":"#FF6A3C",
+  "wizard":"#3D8CFF", "healer":"#FF8FC0", "dragon":"#B24FFF",
+  "pekka":"#7FC4FF", "baby-dragon":"#D08CFF", "miner":"#F0B23C",
+  "electro-dragon":"#3EE8FF", "yeti":"#4FB8E0", "dragon-rider":"#FF7A3C",
+  "electro-titan":"#FFE066", "root-rider":"#9BE85A", "thrower":"#7AD65A",
+  "meteor-golem":"#5AD1FF",
+  // Dark Elixir
+  "minion":"#A25AFF", "hog-rider":"#F0A860", "valkyrie":"#FF5A5A",
+  "golem":"#C24FE0", "witch":"#A05AE0", "lava-hound":"#FF5A2E",
+  "bowler":"#8FA3B8", "ice-golem":"#B8ECFF", "headhunter":"#A02EE0",
+  "apprentice-warden":"#3CEBD6", "druid":"#7AD65A", "furnace":"#FFA23C",
+  "ruin-witch":"#8C3CFF",
+  // Builder Base
+  "raged-barbarian":"#FF7A3C", "sneaky-archer":"#5BE85A", "boxer-giant":"#FF8FC0",
+  "beta-minion":"#7C7CFF", "bomber":"#FF3D2E", "baby-dragon-bb":"#3CEBAA",
+  "cannon-cart":"#E0A860", "night-witch":"#8C3CFF", "drop-ship":"#8FB0D6",
+  "power-pekka":"#FFD93D", "hog-glider":"#9BE85A",
+  // Super Troops
+  "super-barbarian":"#FFD93D", "super-archer":"#FF6FA8", "super-giant":"#5AB8FF",
+  "sneaky-goblin":"#5BE85A", "super-wall-breaker":"#FF3D00", "rocket-balloon":"#FF8C3E",
+  "super-wizard":"#3D8CFF", "super-dragon":"#B24FFF", "inferno-dragon":"#FFA23C",
+  "super-miner":"#F0B23C", "super-yeti":"#A0E0FF", "super-minion":"#A25AFF",
+  "super-hog-rider":"#F0A860", "super-valkyrie":"#FF5A5A", "super-witch":"#A05AE0",
+  "ice-hound":"#6FE8FF", "super-bowler":"#8FA3B8"
+};
+
+/* Paste an image URL for each troop here (in-game render, wiki art, whatever
+   you like). Leave a card as "" to keep its color-blob fallback instead. */
+const CARD_IMAGES = {
+  // Elixir
+  "barbarian":"https://static.wikia.nocookie.net/clashofclans/images/8/87/Avatar_Barbarian.png/revision/latest/scale-to-width-down/120",
+  "archer":"https://static.wikia.nocookie.net/clashofclans/images/6/68/Avatar_Archer.png/revision/latest/scale-to-width-down/120",
+  "giant":"https://static.wikia.nocookie.net/clashofclans/images/7/7d/Avatar_Giant.png/revision/latest/scale-to-width-down/120",
+  "goblin":"https://static.wikia.nocookie.net/clashofclans/images/6/68/Avatar_Goblin.png/revision/latest/scale-to-width-down/120",
+  "wall-breaker":"https://static.wikia.nocookie.net/clashofclans/images/3/36/Avatar_Wall_Breaker.png/revision/latest/scale-to-width-down/120",
+  "balloon":"https://static.wikia.nocookie.net/clashofclans/images/8/80/Avatar_Balloon.png/revision/latest/scale-to-width-down/120",
+  "wizard":"https://static.wikia.nocookie.net/clashofclans/images/9/97/Avatar_Wizard.png/revision/latest/scale-to-width-down/120",
+  "healer":"https://static.wikia.nocookie.net/clashofclans/images/9/9c/Avatar_Healer.png/revision/latest/scale-to-width-down/120",
+  "dragon":"https://static.wikia.nocookie.net/clashofclans/images/9/9c/Avatar_Dragon.png/revision/latest/scale-to-width-down/120",
+  "pekka":"https://static.wikia.nocookie.net/clashofclans/images/1/1a/Avatar_P.E.K.K.A.png/revision/latest/scale-to-width-down/120",
+  "baby-dragon":"https://static.wikia.nocookie.net/clashofclans/images/7/7a/Avatar_Baby_Dragon.png/revision/latest/scale-to-width-down/120",
+  "miner":"https://static.wikia.nocookie.net/clashofclans/images/7/7a/Avatar_Miner.png/revision/latest/scale-to-width-down/120",
+  "electro-dragon":"https://static.wikia.nocookie.net/clashofclans/images/9/97/Avatar_Electro_Dragon.png/revision/latest/scale-to-width-down/120",
+  "yeti":"https://static.wikia.nocookie.net/clashofclans/images/b/be/Avatar_Yeti.png/revision/latest/scale-to-width-down/120",
+  "dragon-rider":"https://static.wikia.nocookie.net/clashofclans/images/5/50/Avatar_Dragon_Rider.png/revision/latest/scale-to-width-down/120",
+  "electro-titan":"https://static.wikia.nocookie.net/clashofclans/images/6/67/Avatar_Electro_Titan.png/revision/latest/scale-to-width-down/120",
+  "root-rider":"https://static.wikia.nocookie.net/clashofclans/images/0/0b/Avatar_Root_Rider.png/revision/latest/scale-to-width-down/120",
+  "thrower":"https://static.wikia.nocookie.net/clashofclans/images/d/da/Avatar_Thrower.png/revision/latest/scale-to-width-down/120",
+  "meteor-golem":"https://static.wikia.nocookie.net/clashofclans/images/0/01/Avatar_Meteor_Golem.png/revision/latest/scale-to-width-down/120",
+  // Dark Elixir
+  "minion":"https://static.wikia.nocookie.net/clashofclans/images/3/3b/Avatar_Minion.png/revision/latest/scale-to-width-down/120",
+  "hog-rider":"https://static.wikia.nocookie.net/clashofclans/images/e/e9/Avatar_Hog_Rider.png/revision/latest/scale-to-width-down/120",
+  "valkyrie":"https://static.wikia.nocookie.net/clashofclans/images/3/31/Avatar_Valkyrie.png/revision/latest/scale-to-width-down/120",
+  "golem":"https://static.wikia.nocookie.net/clashofclans/images/4/44/Avatar_Golem.png/revision/latest/scale-to-width-down/120",
+  "witch":"https://static.wikia.nocookie.net/clashofclans/images/9/90/Avatar_Witch.png/revision/latest/scale-to-width-down/120",
+  "lava-hound":"https://static.wikia.nocookie.net/clashofclans/images/1/1b/Avatar_Lava_Hound.png/revision/latest/scale-to-width-down/120",
+  "bowler":"https://static.wikia.nocookie.net/clashofclans/images/2/24/Avatar_Bowler.png/revision/latest/scale-to-width-down/120",
+  "ice-golem":"https://static.wikia.nocookie.net/clashofclans/images/7/79/Avatar_Ice_Golem.png/revision/latest/scale-to-width-down/120",
+  "headhunter":"https://static.wikia.nocookie.net/clashofclans/images/8/80/Avatar_Headhunter.png/revision/latest/scale-to-width-down/120",
+  "apprentice-warden":"https://static.wikia.nocookie.net/clashofclans/images/8/8b/Avatar_Apprentice_Warden.png/revision/latest/scale-to-width-down/120",
+  "druid":"https://static.wikia.nocookie.net/clashofclans/images/4/43/Avatar_Druid.png/revision/latest/scale-to-width-down/120",
+  "furnace":"https://static.wikia.nocookie.net/clashofclans/images/e/e0/Avatar_Furnace.png/revision/latest/scale-to-width-down/120",
+  "ruin-witch":"https://static.wikia.nocookie.net/clashofclans/images/9/9e/Avatar_Ruin_Witch.png/revision/latest/scale-to-width-down/120",
+  // Builder Base
+  "raged-barbarian":"https://static.wikia.nocookie.net/clashofclans/images/1/12/Avatar_Raged_Barbarian.png/revision/latest/scale-to-width-down/120",
+  "sneaky-archer":"https://static.wikia.nocookie.net/clashofclans/images/8/8c/Avatar_Sneaky_Archer.png/revision/latest/scale-to-width-down/120",
+  "boxer-giant":"https://static.wikia.nocookie.net/clashofclans/images/8/80/Avatar_Boxer_Giant.png/revision/latest/scale-to-width-down/120",
+  "beta-minion":"https://static.wikia.nocookie.net/clashofclans/images/d/d2/Avatar_Beta_Minion.png/revision/latest/scale-to-width-down/120",
+  "bomber":"https://static.wikia.nocookie.net/clashofclans/images/f/fc/Avatar_Bomber.png/revision/latest/scale-to-width-down/120",
+  "baby-dragon-bb":"https://static.wikia.nocookie.net/clashofclans/images/7/7a/Avatar_Baby_Dragon.png/revision/latest/scale-to-width-down/120",
+  "cannon-cart":"https://static.wikia.nocookie.net/clashofclans/images/2/21/Avatar_Cannon_Cart.png/revision/latest/scale-to-width-down/120",
+  "night-witch":"https://static.wikia.nocookie.net/clashofclans/images/f/f8/Avatar_Night_Witch.png/revision/latest/scale-to-width-down/120",
+  "drop-ship":"https://static.wikia.nocookie.net/clashofclans/images/8/8b/Avatar_Drop_Ship.png/revision/latest/scale-to-width-down/120",
+  "power-pekka":"https://static.wikia.nocookie.net/clashofclans/images/3/3b/Avatar_Power_P.E.K.K.A.png/revision/latest/scale-to-width-down/120",
+  "hog-glider":"https://static.wikia.nocookie.net/clashofclans/images/9/99/Avatar_Hog_Glider.png/revision/latest/scale-to-width-down/120",
+  // Super Troops
+  "super-barbarian":"https://static.wikia.nocookie.net/clashofclans/images/81/81/Avatar_Super_Barbarian.png/revision/latest/scale-to-width-down/120",
+  "super-archer":"https://static.wikia.nocookie.net/clashofclans/images/3a/3a/Avatar_Super_Archer.png/revision/latest/scale-to-width-down/120",
+  "super-giant":"https://static.wikia.nocookie.net/clashofclans/images/6b/6b/Avatar_Super_Giant.png/revision/latest/scale-to-width-down/120",
+  "sneaky-goblin":"https://static.wikia.nocookie.net/clashofclans/images/6e/6e/Avatar_Sneaky_Goblin.png/revision/latest/scale-to-width-down/120",
+  "super-wall-breaker":"https://static.wikia.nocookie.net/clashofclans/images/ca/ca/Avatar_Super_Wall_Breaker.png/revision/latest/scale-to-width-down/120",
+  "rocket-balloon":"https://static.wikia.nocookie.net/clashofclans/images/ed/ed/Avatar_Rocket_Balloon.png/revision/latest/scale-to-width-down/120",
+  "super-wizard":"https://static.wikia.nocookie.net/clashofclans/images/f9/f9/Avatar_Super_Wizard.png/revision/latest/scale-to-width-down/120",
+  "super-dragon":"https://static.wikia.nocookie.net/clashofclans/images/0f/0f/Avatar_Super_Dragon.png/revision/latest/scale-to-width-down/120",
+  "inferno-dragon":"https://static.wikia.nocookie.net/clashofclans/images/0b/0b/Avatar_Inferno_Dragon.png/revision/latest/scale-to-width-down/120",
+  "super-miner":"https://static.wikia.nocookie.net/clashofclans/images/b3/b3/Avatar_Super_Miner.png/revision/latest/scale-to-width-down/120",
+  "super-yeti":"https://static.wikia.nocookie.net/clashofclans/images/5/5f/Avatar_Super_Yeti.png/revision/latest/scale-to-width-down/120",
+  "super-minion":"https://static.wikia.nocookie.net/clashofclans/images/be/be/Avatar_Super_Minion.png/revision/latest/scale-to-width-down/120",
+  "super-hog-rider":"https://static.wikia.nocookie.net/clashofclans/images/c4/c4/Avatar_Super_Hog_Rider.png/revision/latest/scale-to-width-down/120",
+  "super-valkyrie":"https://static.wikia.nocookie.net/clashofclans/images/9e/9e/Avatar_Super_Valkyrie.png/revision/latest/scale-to-width-down/120",
+  "super-witch":"https://static.wikia.nocookie.net/clashofclans/images/18/18/Avatar_Super_Witch.png/revision/latest/scale-to-width-down/120",
+  "ice-hound":"https://static.wikia.nocookie.net/clashofclans/images/b0/b0/Avatar_Ice_Hound.png/revision/latest/scale-to-width-down/120",
+  "super-bowler":"https://static.wikia.nocookie.net/clashofclans/images/3/39/Avatar_Super_Bowler.png/revision/latest/scale-to-width-down/120"
+};
+
+function imageFor(card){
+  const url = CARD_IMAGES[card.id];
+  return (url && url !== "PASTE_IMAGE_URL_HERE") ? url : "";
+}
+
+function renderMatrixView(){
+  const accts = DATA.accounts;
+  let rows = "";
+  CATEGORIES.forEach(cat=>{
+    rows += `<tr class="cat-sep" style="--catcolor:${cat.hex}"><td colspan="${accts.length+1}">${cat.label}</td></tr>`;
+    cardsInCat(cat.key).forEach(card=>{
+      rows += `<tr><td class="rowlabel">${escHtml(card.name)}</td>` +
+        accts.map(a=>{
+          const n = getCount(a, card.id);
+          const cls = n>=2 ? "cell-dup" : n===1 ? "cell-1" : "cell-0";
+          return `<td class="cell ${cls}">${n}</td>`;
+        }).join("") + `</tr>`;
+    });
+  });
+  return `
+  <div class="panel-box" style="margin-bottom:14px;">
+    <p style="margin:0;">Every account, every card. <b style="color:var(--gold)">Gold</b> means a duplicate, ready to trade.</p>
+  </div>
+  <div class="matrix-wrap">
+    <table class="matrix">
+      <thead><tr><th class="corner">Card</th>${accts.map(a=>`<th>${escHtml(a)}</th>`).join("")}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+function renderTradeView(){
+  const accts = DATA.accounts;
+  if(!tradeA || !accts.includes(tradeA)) tradeA = accts[0];
+  if(!tradeB || !accts.includes(tradeB) || tradeB===tradeA) tradeB = accts.find(a=>a!==tradeA) || accts[0];
+
+  const optsA = accts.map(a=>`<option value="${escAttr(a)}" ${a===tradeA?'selected':''}>${escHtml(a)}</option>`).join("");
+  const optsB = accts.map(a=>`<option value="${escAttr(a)}" ${a===tradeB?'selected':''}>${escHtml(a)}</option>`).join("");
+
+  let aToB = [], bToA = [];
+  if(tradeA && tradeB && tradeA!==tradeB){
+    activeCards().forEach(c=>{
+      const na = getCount(tradeA,c.id), nb = getCount(tradeB,c.id);
+      if(na>=2 && nb===0) aToB.push(c);
+      if(nb>=2 && na===0) bToA.push(c);
+    });
+  }
+
+  function list(items, direction){
+    if(!tradeA || !tradeB || tradeA===tradeB) return `<div class="empty-note">Pick two different accounts to compare.</div>`;
+    if(!items.length) return `<div class="empty-note">Nothing to send right now.</div>`;
+    return items.map(c=>{
+      const cat = catInfo(c.category);
+      const shortLabel = cat.label.replace(' Troops','').replace(' Cards','');
+      return `<div class="trade-item">
+        <span>${escHtml(c.name)}</span>
+        <div class="trade-item-right">
+          <span class="tag" style="background:${cat.hex}">${shortLabel}</span>
+          <button class="btn tiny" data-action="complete-trade" data-direction="${direction}" data-card="${escAttr(c.id)}">✓ Mark traded</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  // Recent trade history between exactly this pair of accounts, most recent first.
+  const log = (DATA.tradeLog || []).filter(t =>
+    (t.from===tradeA && t.to===tradeB) || (t.from===tradeB && t.to===tradeA)
+  ).slice().reverse().slice(0, 15);
+
+  const logHtml = !log.length ? "" : `
+  <div class="panel-box" style="margin-top:16px;">
+    <h3 style="margin-bottom:10px;">Recent trades between ${escHtml(tradeA)} &amp; ${escHtml(tradeB)}</h3>
+    ${log.map(t=>{
+      const cat = catInfo((DATA.cards.find(c=>c.id===t.cardId)||{}).category) || {hex:'#888'};
+      return `<div class="trade-item">
+        <span>${escHtml(t.cardName)} — <span style="color:var(--ink-dim);">${escHtml(t.from)} → ${escHtml(t.to)}</span></span>
+        <div class="trade-item-right">
+          <span class="log-time">${timeAgo(t.ts)}</span>
+          <button class="btn tiny secondary" data-action="undo-trade" data-logid="${t.id}">Undo</button>
+        </div>
+      </div>`;
+    }).join("")}
+  </div>`;
+
+  return `
+  <div class="trade-select">
+    <select id="trade-a-select">${optsA}</select>
+    <span style="color:var(--ink-faint);">⇄</span>
+    <select id="trade-b-select">${optsB}</select>
+  </div>
+  <div class="trade-cols">
+    <div class="trade-col">
+      <h3>${escHtml(tradeA||'')} → ${escHtml(tradeB||'')}</h3>
+      ${list(aToB, "aToB")}
+    </div>
+    <div class="trade-col">
+      <h3>${escHtml(tradeB||'')} → ${escHtml(tradeA||'')}</h3>
+      ${list(bToA, "bToA")}
+    </div>
+  </div>
+  ${logHtml}`;
+}
+
+function timeAgo(ts){
+  const s = Math.floor((Date.now()-ts)/1000);
+  if(s<60) return "just now";
+  const m = Math.floor(s/60); if(m<60) return m+"m ago";
+  const h = Math.floor(m/60); if(h<24) return h+"h ago";
+  return Math.floor(h/24)+"d ago";
+}
+
+function renderDataView(){
+  const exportBlob = JSON.stringify(DATA, null, 2);
+  return `
+  <div class="panel-box">
+    <h3>Export your data</h3>
+    <p>Back up your binder, or move it to another device.</p>
+    <textarea readonly id="export-box">${escHtml(exportBlob)}</textarea>
+    <div class="btn-row"><button class="btn secondary" data-action="copy-export">Copy to clipboard</button></div>
+  </div>
+  <div class="panel-box">
+    <h3>Import data</h3>
+    <p>Replaces everything currently stored in the app.</p>
+    <textarea id="import-box" placeholder="Paste exported JSON here…"></textarea>
+    <div class="btn-row">
+      <button class="btn" data-action="import-full">Import & replace</button>
+    </div>
+  </div>
+  <div class="panel-box">
+    <h3>Quick bulk-set for "${escHtml(DATA.selectedAccount)}"</h3>
+    <p>Format: <span class="mono">card-id:count</span>, comma-separated. IDs are in the Card List tab. Example: <span class="mono">barbarian:2, archer:1, golem:0</span></p>
+    <textarea id="bulk-box" placeholder="barbarian:2, archer:1, hog-rider:3"></textarea>
+    <div class="btn-row"><button class="btn" data-action="bulk-set">Apply to ${escHtml(DATA.selectedAccount)}</button></div>
+  </div>
+  <div id="status-msg" class="status-msg"></div>
+  <div class="panel-box">
+    <p style="margin:0;"><b>Note on Supercell's export:</b> the village-data JSON export from Clash of Clans does not include Clash of Cards collection data — it's a one-time event tracked outside your normal village save. That's why import here uses this app's own format above, rather than a direct game file.</p>
+  </div>`;
+}
+
+function renderEditorView(){
+  const rows = DATA.cards.map(c=>`
+    <div class="editor-row">
+      <input type="text" data-edit="name" data-card="${escAttr(c.id)}" value="${escAttr(c.name)}">
+      <select data-edit="category" data-card="${escAttr(c.id)}">
+        ${CATEGORIES.map(cat=>`<option value="${cat.key}" ${cat.key===c.category?'selected':''}>${cat.label}</option>`).join("")}
+      </select>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-dim);">
+        <input type="checkbox" data-edit="excluded" data-card="${escAttr(c.id)}" ${c.excluded?'checked':''}> Excluded
+      </label>
+      <button class="btn danger" data-action="delete-card" data-card="${escAttr(c.id)}">Remove</button>
+    </div>`).join("");
+
+  return `
+  <div class="panel-box">
+    <h3>Card roster</h3>
+    <p>Matches the official droptable (19 Elixir / 13 Dark Elixir / 11 Builder Base / 17 Super Troop = 60 cards). Rename, recategorize, add, or exclude anything below if Supercell changes the set mid-event.</p>
+    <div class="editor-row" style="font-weight:700;color:var(--ink-faint);font-size:11px;text-transform:uppercase;">
+      <div>Name</div><div>Category</div><div>Excluded?</div><div></div>
+    </div>
+    ${rows}
+    <div class="btn-row">
+      <input type="text" id="new-card-name" placeholder="New card name…" style="flex:1;min-width:160px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;">
+      <select id="new-card-cat" style="background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;">
+        ${CATEGORIES.map(cat=>`<option value="${cat.key}">${cat.label}</option>`).join("")}
+      </select>
+      <button class="btn" data-action="add-card">Add card</button>
+    </div>
+  </div>`;
+}
+
+/* ---------------- Handlers ---------------- */
+
+function escHtml(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function escAttr(s){ return escHtml(s); }
+function slugify(s){ return s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || ('card-'+Date.now()); }
+
+function attachHandlers(){
+  document.getElementById("app").addEventListener("click", onClick);
+  document.getElementById("app").addEventListener("change", onChange);
+  document.getElementById("app").addEventListener("keydown", onAccountNameKeyDown);
+  document.getElementById("app").addEventListener("focusout", onAccountNameFocusOut);
+}
+
+function onAccountNameKeyDown(e){
+  if(!e.target || e.target.id!=="account-name-input") return;
+  if(e.key==="Enter"){ e.preventDefault(); finishAccountEdit(false); }
+  else if(e.key==="Escape"){ e.preventDefault(); finishAccountEdit(true); }
+}
+function onAccountNameFocusOut(e){
+  if(!e.target || e.target.id!=="account-name-input") return;
+  finishAccountEdit(false);
+}
+
+function onClick(e){
+  const el = e.target.closest("[data-action]");
+  if(!el) return;
+  const action = el.dataset.action;
+
+  if(action==="set-view"){ currentView = el.dataset.view; render(); return; }
+  if(action==="set-category"){ scrollToCategory(el.dataset.cat); return; }
+
+  if(action==="select-account"){ DATA.selectedAccount = el.dataset.account; render(); return; }
+  if(action==="add-account"){
+    const name = nextTempAccountName();
+    DATA.accounts.push(name);
+    DATA.collections[name] = {};
+    DATA.selectedAccount = name;
+    editingAccount = name;
+    saveData(DATA);
+    render();
+    focusAccountInput();
+    return;
+  }
+  if(action==="edit-account-name"){
+    e.stopPropagation();
+    editingAccount = el.dataset.account;
+    render();
+    focusAccountInput();
+    return;
+  }
+  if(action==="delete-account"){
+    e.stopPropagation();
+    const acc = el.dataset.account;
+    if(confirm(`Remove "${acc}" and its saved collection? This can't be undone.`)){
+      DATA.accounts = DATA.accounts.filter(a=>a!==acc);
+      delete DATA.collections[acc];
+      if(DATA.selectedAccount===acc) DATA.selectedAccount = DATA.accounts[0];
+      saveData(DATA);
+      render();
+    }
+    return;
+  }
+
+  if(action==="inc" || action==="dec"){
+    const cardId = el.dataset.card;
+    const cur = getCount(DATA.selectedAccount, cardId);
+    setCount(DATA.selectedAccount, cardId, action==="inc" ? cur+1 : cur-1);
+    render();
+    return;
+  }
+
+  if(action==="complete-trade"){
+    const direction = el.dataset.direction;
+    const cardId = el.dataset.card;
+    const card = DATA.cards.find(c=>c.id===cardId);
+    if(!card || !tradeA || !tradeB) return;
+    const giver = direction==="aToB" ? tradeA : tradeB;
+    const receiver = direction==="aToB" ? tradeB : tradeA;
+
+    const giverCount = getCount(giver, cardId);
+    if(giverCount < 2){ flashStatus("That duplicate isn't available anymore — list may be out of date."); render(); return; }
+
+    setCount(giver, cardId, giverCount - 1);
+    setCount(receiver, cardId, getCount(receiver, cardId) + 1);
+
+    if(!DATA.tradeLog) DATA.tradeLog = [];
+    DATA.tradeLog.push({
+      id: "t" + Date.now() + Math.random().toString(36).slice(2,7),
+      from: giver, to: receiver, cardId, cardName: card.name, ts: Date.now()
+    });
+    if(DATA.tradeLog.length > 300) DATA.tradeLog = DATA.tradeLog.slice(-300);
+    saveData(DATA);
+    flashStatus(`${card.name}: ${giver} → ${receiver} logged.`);
+    render();
+    return;
+  }
+  if(action==="undo-trade"){
+    const logId = el.dataset.logid;
+    const entry = (DATA.tradeLog||[]).find(t=>t.id===logId);
+    if(!entry) return;
+    // reverse the swap
+    setCount(entry.from, entry.cardId, getCount(entry.from, entry.cardId) + 1);
+    setCount(entry.to, entry.cardId, Math.max(0, getCount(entry.to, entry.cardId) - 1));
+    DATA.tradeLog = DATA.tradeLog.filter(t=>t.id!==logId);
+    saveData(DATA);
+    flashStatus("Trade undone.");
+    render();
+    return;
+  }
+
+  if(action==="copy-export"){
+    const box = document.getElementById("export-box");
+    box.select();
+    navigator.clipboard?.writeText(box.value).then(()=>flashStatus("Copied to clipboard.")).catch(()=>flashStatus("Couldn't copy — select and copy manually."));
+    return;
+  }
+  if(action==="import-full"){
+    const raw = document.getElementById("import-box").value.trim();
+    if(!raw) return;
+    try{
+      const parsed = JSON.parse(raw);
+      if(!parsed.cards || !parsed.accounts || !parsed.collections) throw new Error("shape");
+      DATA = parsed;
+      if(!DATA.selectedAccount || !DATA.accounts.includes(DATA.selectedAccount)) DATA.selectedAccount = DATA.accounts[0];
+      saveData(DATA);
+      currentView = "binder";
+      render();
+    }catch(err){
+      alert("That doesn't look like valid exported data from this app.");
+    }
+    return;
+  }
+  if(action==="bulk-set"){
+    const raw = document.getElementById("bulk-box").value.trim();
+    if(!raw) return;
+    const pairs = raw.split(",").map(s=>s.trim()).filter(Boolean);
+    let applied = 0, skipped = [];
+    pairs.forEach(p=>{
+      const [id, val] = p.split(":").map(s=>s.trim());
+      const n = parseInt(val,10);
+      if(DATA.cards.find(c=>c.id===id) && !isNaN(n)){
+        setCount(DATA.selectedAccount, id, n);
+        applied++;
+      } else skipped.push(p);
+    });
+    flashStatus(`Applied ${applied} card${applied===1?'':'s'}.${skipped.length? ' Skipped: '+skipped.join(', ') : ''}`);
+    render();
+    return;
+  }
+
+  if(action==="delete-card"){
+    const id = el.dataset.card;
+    if(confirm("Remove this card from the roster? Collected counts for it will be lost across all accounts.")){
+      DATA.cards = DATA.cards.filter(c=>c.id!==id);
+      Object.values(DATA.collections).forEach(col=>{ delete col[id]; });
+      saveData(DATA);
+      render();
+    }
+    return;
+  }
+  if(action==="add-card"){
+    const nameInput = document.getElementById("new-card-name");
+    const catSelect = document.getElementById("new-card-cat");
+    const name = nameInput.value.trim();
+    if(!name) return;
+    let id = slugify(name);
+    let suffix = 1;
+    while(DATA.cards.find(c=>c.id===id)){ id = slugify(name)+'-'+(++suffix); }
+    DATA.cards.push({id, name, category: catSelect.value, excluded:false});
+    saveData(DATA);
+    render();
+    return;
+  }
+}
+
+function onChange(e){
+  const t = e.target;
+  if(t.id==="trade-a-select"){ tradeA = t.value; render(); return; }
+  if(t.id==="trade-b-select"){ tradeB = t.value; render(); return; }
+
+  if(t.dataset && t.dataset.edit){
+    const cardId = t.dataset.card;
+    const card = DATA.cards.find(c=>c.id===cardId);
+    if(!card) return;
+    if(t.dataset.edit==="name") card.name = t.value;
+    if(t.dataset.edit==="category") card.category = t.value;
+    if(t.dataset.edit==="excluded") card.excluded = t.checked;
+    saveData(DATA);
+    // no full re-render needed for text input to avoid losing focus; re-render only for select/checkbox
+    if(t.dataset.edit!=="name") render();
+  }
+}
+
+/* ---------------- Boot ---------------- */
+(async function boot(){
+  DATA = await loadData();
+  render();
+})();
+</script>
+</body>
+</html>
