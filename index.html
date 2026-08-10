@@ -302,26 +302,38 @@ table.matrix td.cell{font-family:'JetBrains Mono',monospace;}
 }
 .trade-filter-row label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-dim);white-space:nowrap;}
 
-.duptrade-list{display:flex;flex-direction:column;gap:8px;margin-bottom:22px;}
-.duptrade-row{
-  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  padding:10px 12px;border-radius:10px;background:var(--bg-elevated);border:1px solid var(--line);font-size:13px;
-}
-.duptrade-row .who{font-weight:700;}
-.duptrade-row .tag{font-size:10px;padding:2px 7px;border-radius:999px;color:#fff;white-space:nowrap;}
-.duptrade-row .spare{font-family:'JetBrains Mono',monospace;color:var(--gold);font-weight:700;font-size:12px;}
-.duptrade-row select{
-  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;
-  padding:6px 8px;font-family:inherit;font-size:12.5px;
-}
-.duptrade-row .duptrade-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;}
+/* ---------- Trade partner picker ---------- */
+.trade-partner-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
+.trade-partner-row .you-label{font-weight:800;color:var(--gold);font-size:13.5px;}
+.trade-arrow{color:var(--gold);font-size:17px;line-height:1;}
 
-.trade-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px;}
-@media(max-width:760px){.trade-cols{grid-template-columns:1fr;}}
-.trade-col h3{margin:0 0 10px;font-size:14px;color:var(--gold);}
-.trade-col .duptrade-list{margin-bottom:0;}
+/* ---------- Swap sections (per-category give/get) ---------- */
+.swap-section{
+  background:var(--bg-elevated);border:1px solid var(--line);border-radius:14px;
+  padding:16px;margin-bottom:14px;
+}
+.swap-section h4{
+  margin:0 0 14px;font-size:13.5px;font-weight:700;color:var(--ink);
+  display:flex;align-items:center;gap:8px;
+}
+.swap-cat-dot{width:10px;height:10px;border-radius:3px;flex:none;}
+.swap-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.swap-side{flex:1 1 200px;min-width:180px;}
+.swap-side label{
+  display:block;font-size:10px;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--ink-faint);margin-bottom:5px;font-weight:700;
+}
+.swap-side select{
+  width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  border-radius:9px;padding:9px 10px;font-family:inherit;font-size:13px;
+}
+.swap-locked{
+  width:100%;background:var(--panel);color:var(--gold);border:1px solid var(--gold);
+  border-radius:9px;padding:9px 10px;font-size:13px;font-weight:700;
+}
+.swap-arrow-icon{flex:none;font-size:22px;color:var(--gold);align-self:center;}
+.swap-actions{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;}
 
-.offer-pending{font-size:12px;color:var(--ink-dim);white-space:nowrap;}
 .btn.tiny.confirm{background:linear-gradient(135deg,#3ecf8e,#2a9d6a);color:#0c2117;border:none;}
 .btn.tiny.confirm:hover{filter:brightness(1.08);}
 
@@ -507,8 +519,9 @@ let editingAccount = null;   // slug
 let becomingContributor = false;
 let tradeFilterCat = "all";
 let tradeFilterQuery = "";
-let pendingTradeOffers = new Map(); // key -> {from, to, cardId, cardName}
-let sendRecipientChoice = {};       // cardId -> chosen recipient slug (for the "you can send" list)
+let pendingTradeOffers = new Map(); // key "from::to::category" -> {from, to, category, giveCardId, giveCardName, getCardId, getCardName}
+let tradePartner = null;            // slug of the account the viewingAccount is currently trading with
+let swapChoice = {};                // category key -> {give: cardId, get: cardId}, last picked options per category
 let lastSyncTs = null;
 let statusTimer = null;
 
@@ -523,7 +536,7 @@ function timeAgo(ts){
   const h = Math.floor(m/60); if(h<24) return h+"h ago";
   return Math.floor(h/24)+"d ago";
 }
-function tradeKey(from,to,cardId){ return `${from}::${to}::${cardId}`; }
+function swapKey(from,to,category){ return `${from}::${to}::${category}`; }
 
 /* ---------------- Derived data ---------------- */
 function activeCards(){ return roster.cards.filter(c=>!c.excluded); }
@@ -653,26 +666,39 @@ async function deleteAccountAndCollection(slug){
 }
 
 /* ---------------- Trade log ---------------- */
-async function logTrade(giverSlug, receiverSlug, cardId){
-  const card = roster.cards.find(c=>c.id===cardId);
-  if(!card || !giverSlug || !receiverSlug || giverSlug===receiverSlug) return;
+// A trade is a same-category swap: aSlug gives up aGiveCardId (their duplicate) to bSlug,
+// and bSlug gives up bGiveCardId (their duplicate) to aSlug, in the same motion. Both
+// accounts must currently hold a spare of what they're giving, or the trade is rejected.
+async function logSwapTrade(aSlug, bSlug, aGiveCardId, bGiveCardId){
+  const aGiveCard = roster.cards.find(c=>c.id===aGiveCardId);
+  const bGiveCard = roster.cards.find(c=>c.id===bGiveCardId);
+  if(!aGiveCard || !bGiveCard || !aSlug || !bSlug || aSlug===bSlug) return;
+  if(aGiveCard.category !== bGiveCard.category){
+    flashStatus("Trades must be within the same category.");
+    return;
+  }
   try{
-    const giverSnap = await getDoc(doc(db,"collections",giverSlug));
-    const giverCount = (giverSnap.exists() && giverSnap.data()[cardId]) || 0;
-    if(giverCount < 2){
-      flashStatus("That duplicate isn't available anymore — someone traded it first.");
+    const [aSnap, bSnap] = await Promise.all([
+      getDoc(doc(db,"collections",aSlug)),
+      getDoc(doc(db,"collections",bSlug))
+    ]);
+    const aCount = (aSnap.exists() && aSnap.data()[aGiveCardId]) || 0;
+    const bCount = (bSnap.exists() && bSnap.data()[bGiveCardId]) || 0;
+    if(aCount < 2 || bCount < 2){
+      flashStatus("One of those duplicates isn't available anymore — someone traded it first.");
       return;
     }
-    await updateDoc(doc(db,"collections",giverSlug), { [cardId]: increment(-1) });
-    await setDoc(doc(db,"collections",receiverSlug), { [cardId]: increment(1) }, { merge:true });
+    await updateDoc(doc(db,"collections",aSlug), { [aGiveCardId]: increment(-1), [bGiveCardId]: increment(1) });
+    await updateDoc(doc(db,"collections",bSlug), { [bGiveCardId]: increment(-1), [aGiveCardId]: increment(1) });
     await addDoc(tradelogCol, {
-      fromSlug: giverSlug, toSlug: receiverSlug,
-      fromName: accName(giverSlug), toName: accName(receiverSlug),
-      cardId, cardName: card.name, ts: Date.now()
+      aSlug, bSlug, aName: accName(aSlug), bName: accName(bSlug),
+      aGivesCardId: aGiveCardId, aGivesCardName: aGiveCard.name,
+      bGivesCardId: bGiveCardId, bGivesCardName: bGiveCard.name,
+      category: aGiveCard.category, ts: Date.now()
     });
-    flashStatus(`${card.name}: ${accName(giverSlug)} → ${accName(receiverSlug)} logged for everyone.`);
+    flashStatus(`Logged: ${accName(aSlug)}'s ${aGiveCard.name} ⇄ ${accName(bSlug)}'s ${bGiveCard.name} — both binders updated.`);
   }catch(e){
-    console.error("log trade failed", e);
+    console.error("log swap trade failed", e);
     flashStatus("⚠ Trade log failed — check your connection.");
   }
 }
@@ -681,8 +707,15 @@ async function undoTrade(logId){
   const entry = (tradeLog.entries||[]).find(t=>t.id===logId);
   if(!entry) return;
   try{
-    await updateDoc(doc(db,"collections",entry.fromSlug), { [entry.cardId]: increment(1) });
-    await updateDoc(doc(db,"collections",entry.toSlug), { [entry.cardId]: increment(-1) });
+    if(entry.aGivesCardId){
+      // swap-format entry: reverse both sides of the exchange
+      await updateDoc(doc(db,"collections",entry.aSlug), { [entry.aGivesCardId]: increment(1), [entry.bGivesCardId]: increment(-1) });
+      await updateDoc(doc(db,"collections",entry.bSlug), { [entry.bGivesCardId]: increment(1), [entry.aGivesCardId]: increment(-1) });
+    } else {
+      // legacy single-direction entry from an earlier version of the tracker
+      await updateDoc(doc(db,"collections",entry.fromSlug), { [entry.cardId]: increment(1) });
+      await updateDoc(doc(db,"collections",entry.toSlug), { [entry.cardId]: increment(-1) });
+    }
     await deleteDoc(doc(db,"tradelog",logId));
     flashStatus("Trade undone for everyone.");
   }catch(e){
@@ -1116,42 +1149,33 @@ function renderMatrixView(){
   </div>`;
 }
 
-/* ---------------- Trade Finder: scoped to the selected account, offer/accept + undo ---------------- */
+/* ---------------- Trade Finder: same-category swaps between the selected account and a partner ---------------- */
 function passesTradeFilter(card){
   if(tradeFilterCat!=="all" && card.category!==tradeFilterCat) return false;
   if(tradeFilterQuery && !card.name.toLowerCase().includes(tradeFilterQuery.toLowerCase())) return false;
   return true;
 }
 
-// Cards the selected account has spare, that some other account is missing entirely.
-function computeSendables(acct){
-  const rows = [];
-  if(!acct) return rows;
-  activeCards().forEach(card=>{
-    if(!passesTradeFilter(card)) return;
-    const mine = getCount(acct, card.id);
-    if(mine<2) return;
-    const wanters = accountsMeta.list.filter(a=>a.slug!==acct && getCount(a.slug, card.id)===0);
-    if(!wanters.length) return;
-    rows.push({card, spare:mine-1, wanters});
+// For a given account + potential partner, find every category where BOTH sides have
+// something to give (a duplicate the other one is missing) — since a trade is a same-category
+// swap, a category only counts if both accounts bring a duplicate to the table.
+function computeSwapCategories(acct, partnerSlug){
+  if(!acct || !partnerSlug || acct===partnerSlug) return [];
+  const out = [];
+  CATEGORIES.forEach(cat=>{
+    const cardsHere = cardsInCat(cat.key).filter(passesTradeFilter);
+    const iGive = cardsHere.filter(c => getCount(acct,c.id)>=2 && getCount(partnerSlug,c.id)===0);
+    const iGet  = cardsHere.filter(c => getCount(partnerSlug,c.id)>=2 && getCount(acct,c.id)===0);
+    if(iGive.length && iGet.length) out.push({cat, iGive, iGet});
   });
-  return rows;
+  return out;
 }
 
-// Cards the selected account is missing, that some other account has spare.
-function computeReceivables(acct){
-  const rows = [];
-  if(!acct) return rows;
-  activeCards().forEach(card=>{
-    if(!passesTradeFilter(card)) return;
-    if(getCount(acct, card.id) > 0) return;
-    accountsMeta.list.forEach(a=>{
-      if(a.slug===acct) return;
-      const n = getCount(a.slug, card.id);
-      if(n>=2) rows.push({card, spare:n-1, from:a});
-    });
-  });
-  return rows;
+// Only accounts that can complete an actual swap with acct — i.e. they also hold a
+// duplicate acct needs, in a category where acct also holds a duplicate they need.
+function eligibleTradePartners(acct){
+  if(!acct) return [];
+  return accountsMeta.list.filter(a => a.slug!==acct && computeSwapCategories(acct, a.slug).length>0);
 }
 
 function renderTradeView(){
@@ -1166,62 +1190,80 @@ function renderTradeView(){
     </div>`;
   }
 
-  const sendRows = computeSendables(acct);
-  const recvRows = computeReceivables(acct);
+  const partners = eligibleTradePartners(acct);
+  if(!tradePartner || !partners.find(p=>p.slug===tradePartner)){
+    tradePartner = partners[0] ? partners[0].slug : null;
+  }
 
-  const sendHtml = !sendRows.length
-    ? `<div class="empty-note">${escHtml(accName(acct))} has nothing spare that another account needs right now.</div>`
-    : sendRows.map(row=>{
-        const cat = catInfo(row.card.category);
-        const chosen = row.wanters.find(a=>a.slug===sendRecipientChoice[row.card.id]) ? sendRecipientChoice[row.card.id] : row.wanters[0].slug;
-        const key = tradeKey(acct, chosen, row.card.id);
-        const pending = pendingTradeOffers.get(key);
-        return `
-        <div class="duptrade-row">
-          <span class="tag" style="background:${cat.hex}">${cat.label.replace(' Troops','')}</span>
-          <span>${escHtml(row.card.name)}</span>
-          <span class="spare">×${row.spare} spare</span>
-          <div class="duptrade-right">
-            ${pending ? `
-              <span class="offer-pending">→ ${escHtml(accName(chosen))}</span>
-              <button class="btn tiny confirm" data-action="accept-trade" data-key="${escAttr(key)}">✓ Trade accepted</button>
-              <button class="btn tiny secondary" data-action="cancel-offer" data-key="${escAttr(key)}">Cancel</button>
-            ` : `
-              <select data-role="send-recipient" data-card="${escAttr(row.card.id)}">
-                ${row.wanters.map(a=>`<option value="${escAttr(a.slug)}" ${a.slug===chosen?'selected':''}>${escHtml(a.name)}</option>`).join("")}
-              </select>
-              <button class="btn tiny" data-action="offer-trade" data-from="${escAttr(acct)}" data-to="${escAttr(chosen)}" data-card="${escAttr(row.card.id)}">Trade offered</button>
-            `}
+  const partnerRow = `
+  <div class="trade-partner-row">
+    <span class="you-label">${escHtml(accName(acct))}</span>
+    <span class="trade-arrow">⇄</span>
+    ${!partners.length
+      ? `<span class="empty-note" style="padding:0;">nobody right now</span>`
+      : partners.map(p=>`<button class="chip ${p.slug===tradePartner?'active':''}" data-action="select-trade-partner" data-partner="${escAttr(p.slug)}">${escHtml(p.name)}</button>`).join("")}
+  </div>`;
+
+  let swapSectionsHtml = `<div class="empty-note">Nobody has a duplicate ${escHtml(accName(acct))} needs while also needing one of ${escHtml(accName(acct))}'s duplicates in the same category. Trades only work as an even swap — both sides bring a card to the table.</div>`;
+
+  if(tradePartner){
+    const cats = computeSwapCategories(acct, tradePartner);
+    swapSectionsHtml = cats.map(({cat, iGive, iGet})=>{
+      const choice = swapChoice[cat.key] || {};
+      const chosenGive = iGive.find(c=>c.id===choice.give) ? choice.give : iGive[0].id;
+      const chosenGet  = iGet.find(c=>c.id===choice.get)   ? choice.get  : iGet[0].id;
+      const key = swapKey(acct, tradePartner, cat.key);
+      const pending = pendingTradeOffers.get(key);
+      return `
+      <div class="swap-section">
+        <h4><span class="swap-cat-dot" style="background:${cat.hex}"></span>${cat.label}</h4>
+        <div class="swap-row">
+          <div class="swap-side">
+            <label>${escHtml(accName(acct))} gives</label>
+            ${pending
+              ? `<div class="swap-locked">${escHtml(pending.giveCardName)}</div>`
+              : `<select data-role="give-card" data-cat="${cat.key}">
+                  ${iGive.map(c=>`<option value="${escAttr(c.id)}" ${c.id===chosenGive?'selected':''}>${escHtml(c.name)} (×${getCount(acct,c.id)-1} spare)</option>`).join("")}
+                </select>`}
           </div>
-        </div>`;
-      }).join("");
-
-  const recvHtml = !recvRows.length
-    ? `<div class="empty-note">No other account has a spare that ${escHtml(accName(acct))} needs right now.</div>`
-    : recvRows.map(row=>{
-        const cat = catInfo(row.card.category);
-        const key = tradeKey(row.from.slug, acct, row.card.id);
-        const pending = pendingTradeOffers.get(key);
-        return `
-        <div class="duptrade-row">
-          <span class="who">${escHtml(row.from.name)}</span>
-          <span class="tag" style="background:${cat.hex}">${cat.label.replace(' Troops','')}</span>
-          <span>has ${escHtml(row.card.name)}</span>
-          <span class="spare">×${row.spare} spare</span>
-          <div class="duptrade-right">
-            ${pending ? `
-              <button class="btn tiny confirm" data-action="accept-trade" data-key="${escAttr(key)}">✓ Trade accepted</button>
-              <button class="btn tiny secondary" data-action="cancel-offer" data-key="${escAttr(key)}">Cancel</button>
-            ` : `
-              <button class="btn tiny" data-action="offer-trade" data-from="${escAttr(row.from.slug)}" data-to="${escAttr(acct)}" data-card="${escAttr(row.card.id)}">Trade offered</button>
-            `}
+          <div class="swap-arrow-icon">⇄</div>
+          <div class="swap-side">
+            <label>${escHtml(accName(tradePartner))} gives</label>
+            ${pending
+              ? `<div class="swap-locked">${escHtml(pending.getCardName)}</div>`
+              : `<select data-role="get-card" data-cat="${cat.key}">
+                  ${iGet.map(c=>`<option value="${escAttr(c.id)}" ${c.id===chosenGet?'selected':''}>${escHtml(c.name)} (×${getCount(tradePartner,c.id)-1} spare)</option>`).join("")}
+                </select>`}
           </div>
-        </div>`;
-      }).join("");
+        </div>
+        <div class="swap-actions">
+          ${pending ? `
+            <button class="btn tiny confirm" data-action="accept-trade" data-key="${escAttr(key)}">✓ Trade accepted</button>
+            <button class="btn tiny secondary" data-action="cancel-offer" data-key="${escAttr(key)}">Cancel</button>
+          ` : `
+            <button class="btn tiny" data-action="offer-trade" data-from="${escAttr(acct)}" data-to="${escAttr(tradePartner)}" data-cat="${escAttr(cat.key)}" data-give="${escAttr(chosenGive)}" data-get="${escAttr(chosenGet)}">Trade offered</button>
+          `}
+        </div>
+      </div>`;
+    }).join("");
+    if(!cats.length){
+      swapSectionsHtml = `<div class="empty-note">No matching category right now — ${escHtml(accName(acct))} and ${escHtml(accName(tradePartner))} don't each have a duplicate the other needs in the same category.</div>`;
+    }
+  }
 
-  // Trade history involving this account, most recent first.
-  const log = (tradeLog.entries||[]).filter(t=>t.fromSlug===acct || t.toSlug===acct).slice().reverse().slice(0,50);
+  // Trade history involving this account, most recent first (supports both swap-format and legacy single-direction entries).
+  const log = (tradeLog.entries||[]).filter(t => t.aSlug===acct || t.bSlug===acct || t.fromSlug===acct || t.toSlug===acct).slice().reverse().slice(0,50);
   const logHtml = !log.length ? `<div class="empty-note">No trades logged yet for ${escHtml(accName(acct))}.</div>` : log.map(t=>{
+    if(t.aGivesCardId){
+      const cat = catInfo(t.category) || {hex:'#888'};
+      return `<div class="trade-item">
+        <span><span class="tag" style="background:${cat.hex};margin-right:6px;">${cat.label ? cat.label.replace(' Troops','') : ''}</span>${escHtml(t.aName)} gave <b>${escHtml(t.aGivesCardName)}</b> <span class="trade-arrow" style="font-size:12px;">⇄</span> ${escHtml(t.bName)} gave <b>${escHtml(t.bGivesCardName)}</b></span>
+        <div class="trade-item-right">
+          <span class="log-time">${timeAgo(t.ts)}</span>
+          <button class="btn tiny secondary" data-action="undo-trade" data-logid="${t.id}">Undo</button>
+        </div>
+      </div>`;
+    }
     const card = roster.cards.find(c=>c.id===t.cardId);
     const cat = card ? catInfo(card.category) : {hex:'#888'};
     return `<div class="trade-item">
@@ -1235,22 +1277,14 @@ function renderTradeView(){
 
   return `
   <div class="panel-box" style="margin-bottom:14px;">
-    <p style="margin:0;">Showing trades relevant to <b>${escHtml(accName(acct))}</b>. This is a <b>record</b>, not an in-game trade bot — tap <b>Trade offered</b> once you've proposed it face-to-face, then <b>Trade accepted</b> once it's actually done. Made a mistake? <b>Undo</b> below reverses it for everyone.</p>
+    <p style="margin:0;">A trade is an even swap: both accounts give up one duplicate <b>from the same category</b>. Pick a partner, pick what each side gives, tap <b>Trade offered</b> once you've proposed it face-to-face, then <b>Trade accepted</b> once it's actually done — that updates <b>both</b> binders at once. Made a mistake? <b>Undo</b> below reverses it for everyone.</p>
   </div>
   <div class="trade-filter-row">
     <input type="text" id="trade-search" placeholder="Search a card…" value="${escAttr(tradeFilterQuery)}">
     <select id="trade-cat-filter">${catOpts}</select>
   </div>
-  <div class="trade-cols">
-    <div class="trade-col">
-      <h3>${escHtml(accName(acct))} can send</h3>
-      <div class="duptrade-list">${sendHtml}</div>
-    </div>
-    <div class="trade-col">
-      <h3>${escHtml(accName(acct))} can receive</h3>
-      <div class="duptrade-list">${recvHtml}</div>
-    </div>
-  </div>
+  ${partnerRow}
+  ${swapSectionsHtml}
   <div class="panel-box">
     <h3 style="margin-bottom:10px;">Trade history for ${escHtml(accName(acct))}</h3>
     ${logHtml}
@@ -1397,11 +1431,21 @@ function onClick(e){
     return;
   }
 
+  if(action==="select-trade-partner"){
+    tradePartner = el.dataset.partner;
+    render();
+    return;
+  }
   if(action==="offer-trade"){
-    const from = el.dataset.from, to = el.dataset.to, cardId = el.dataset.card;
-    if(!from || !to || !cardId) return;
-    const card = roster.cards.find(c=>c.id===cardId);
-    pendingTradeOffers.set(tradeKey(from,to,cardId), { from, to, cardId, cardName: card?card.name:cardId });
+    const from = el.dataset.from, to = el.dataset.to, cat = el.dataset.cat, giveId = el.dataset.give, getId = el.dataset.get;
+    if(!from || !to || !giveId || !getId) return;
+    const giveCard = roster.cards.find(c=>c.id===giveId);
+    const getCard = roster.cards.find(c=>c.id===getId);
+    pendingTradeOffers.set(swapKey(from,to,cat), {
+      from, to, category: cat,
+      giveCardId: giveId, giveCardName: giveCard?giveCard.name:giveId,
+      getCardId: getId, getCardName: getCard?getCard.name:getId
+    });
     render();
     return;
   }
@@ -1415,7 +1459,7 @@ function onClick(e){
     const entry = pendingTradeOffers.get(key);
     if(!entry) return;
     pendingTradeOffers.delete(key);
-    logTrade(entry.from, entry.to, entry.cardId);
+    logSwapTrade(entry.from, entry.to, entry.giveCardId, entry.getCardId);
     render();
     return;
   }
@@ -1484,8 +1528,17 @@ function onChange(e){
 
   if(t.id==="trade-search"){ tradeFilterQuery = t.value; render(); return; }
   if(t.id==="trade-cat-filter"){ tradeFilterCat = t.value; render(); return; }
-  if(t.dataset && t.dataset.role==="send-recipient"){
-    sendRecipientChoice[t.dataset.card] = t.value;
+  if(t.dataset && t.dataset.role==="give-card"){
+    const catKey = t.dataset.cat;
+    swapChoice[catKey] = swapChoice[catKey] || {};
+    swapChoice[catKey].give = t.value;
+    render();
+    return;
+  }
+  if(t.dataset && t.dataset.role==="get-card"){
+    const catKey = t.dataset.cat;
+    swapChoice[catKey] = swapChoice[catKey] || {};
+    swapChoice[catKey].get = t.value;
     render();
     return;
   }
