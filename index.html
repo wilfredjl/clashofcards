@@ -734,6 +734,10 @@ let currentCategory = "elixir";
 let viewingAccount = null;   // slug
 let editingAccount = null;   // slug
 let becomingContributor = false;
+
+// Tutorial state
+let tutorialActive = false;
+let tutorialStep = 0;
 let tradeFilterCat = "all";
 let tradeFilterQuery = "";
 let pendingTradeOffers = new Map(); // key "from::to::category" -> {from, to, category, giveCardId, giveCardName, getCardId, getCardName}
@@ -1083,7 +1087,7 @@ function renderHeader(){
   <header class="app-head">
     <div class="title-block">
       <h1>🃏Card Binder</h1>
-      <p><b>Autism Prime Max.</b>  Trading closes Sep&nbsp;2, 16:00&nbsp;SGT.</p>
+      <p><b>Autism Prime Max.</b>  Trading closes Sep&nbsp;2, 08:00&nbsp;UTC.</p>
     </div>
     <div class="event-clock">
       <div class="label">Trading window</div>
@@ -1140,9 +1144,9 @@ function renderAccountBar(){
     return `
     <button class="chip ${a.slug===viewingAccount?'active':''}" data-action="select-account" data-account="${escAttr(a.slug)}">
       ${escHtml(a.name)}
-      ${a.locked ? `<span class="chip-lock" title="Pre-established account — can't be removed">🔒</span>` : ''}
-      ${canManage ? `<span class="chip-pencil" data-action="edit-account-name" data-account="${escAttr(a.slug)}" title="Rename your account">✎</span>` : ''}
-      ${canManage ? `<span class="chip-x" data-action="delete-account" data-account="${escAttr(a.slug)}" title="Remove your account">✕</span>` : ''}
+      ${a.locked ? `<span class="chip-lock" title="Pre-established account — admin can manage this account">🔒</span>` : ''}
+      ${canManage ? `<span class="chip-pencil" data-action="edit-account-name" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Rename account" : "Rename your account"}">✎</span>` : ''}
+      ${canManage ? `<span class="chip-x" data-action="delete-account" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Delete account" : "Remove your account"}">✕</span>` : ''}
     </button>`;
   }).join("");
   return `
@@ -1453,7 +1457,7 @@ function renderTradeView(){
   // Partner picker — a proper "choose an opponent" gallery instead of a bare row of chips.
   let partnerPickerHtml;
   if(!partners.length){
-    partnerPickerHtml = `<div class="empty-note">Nobody has a duplicate ${escHtml(accName(acct))} needs while also needing one of ${escHtml(accName(acct))}'s duplicates in the same category. Come back later</div>`;
+    partnerPickerHtml = `<div class="empty-note">Nobody has a duplicate ${escHtml(accName(acct))} needs while also needing one of ${escHtml(accName(acct))}'s duplicates in the same category — check back once more cards are collected.</div>`;
   } else {
     partnerPickerHtml = `
     <div class="partner-picker-label">Choose someone to trade with</div>
@@ -1723,7 +1727,11 @@ function onClick(e){
   if(action==="cancel-contributor"){ becomingContributor = false; render(); return; }
   if(action==="confirm-contributor"){ confirmContributor(); return; }
 
-  if(action==="replay-tutorial"){ startTutorial(); return; }
+  if(action==="replay-tutorial"){
+    try{ localStorage.removeItem(TUTORIAL_KEY); }catch(e){}
+    startTutorial();
+    return;
+  }
 
   if(action==="select-account"){ viewingAccount = el.dataset.account; recomputeSettings(); render(); return; }
   if(action==="exit-admin-edit"){
@@ -1743,9 +1751,8 @@ function onClick(e){
   if(action==="delete-account"){
     e.stopPropagation();
     const slug = el.dataset.account;
-    if(accountLocked(slug)) return;
     const a = accountBySlug(slug);
-    if(!a || (!isAdmin() && a.ownerUid !== currentUid)) return;
+    if(!a || (!isAdmin() && (a.locked || a.ownerUid !== currentUid))) return;
     if(confirm(`Remove "${a.name}" and its collection from the shared gallery? This can't be undone.`)){
       (async ()=>{
         await deleteAccountAndCollection(slug);
@@ -1917,30 +1924,41 @@ const TUTORIAL_STEPS = [
   {
     view: null,
     getTarget: () => document.querySelector('[data-action="start-contributing"]') || document.querySelector(".chip.active .chip-pencil"),
-    title: "Step 1 — Create your account",
-    text: "Tap \"+ Add my account\" and enter your real in-game account name. This creates your account and names it in one go — that's what everyone else will see you as across the gallery, matrix, and trade finder. Already added yourself? Use the ✎ pencil on your account chip to rename it any time."
+    title: "Step 1: Create your account",
+    text: "Tap \"+ Add my account\" and enter your in-game name. You'll be able to edit your binder on the same device at any time."
   },
   {
     view: "binder",
     getTarget: () => document.querySelector(".binder-page"),
-    title: "Step 2 — Fill up your binder",
-    text: "Go card by card and tap + for every duplicate you actually own in-game, so this binder matches your real collection exactly."
+    title: "Step 2: Fill up your binder",
+    text: "Go card by card and tap + for every duplicate you actually own in-game, so this binder matches your real collection in-game."
   },
   {
     view: "matrix",
     getTarget: () => document.querySelector(".matrix-wrap"),
-    title: "Step 3 — Check the Collection Matrix",
-    text: "Head to Collection Matrix for a wide view of everyone's progress at a glance — every account, every card, side by side."
+    title: "Step 3: Check the Collection Matrix",
+    text: "Head to Collection Matrix for a wide view of everyone's progress at a glance."
   },
   {
     view: "trade",
     getTarget: () => document.querySelector(".trade-hero") || document.querySelector(".partner-grid") || document.querySelector("#view-trade .panel-box") || document.querySelector("#view-trade"),
-    title: "Step 4 — Let Trade Finder do the matching",
-    text: "This is the best part. Trade Finder automatically matches your duplicates against what everyone else needs — no more scrolling everyone's binder by hand. When you make the trade in-game, come back and click \"Trade offered\", then once it actually goes through, click \"✓ Trade accepted\". This keeps everyone's collection accurate, since a stale count can make Trade Finder suggest a card that's no longer spare."
+    title: "Step 4: Use Trade Finder to do the matching",
+    text: "This will automatically match your duplicates against what everyone else needs. When you make the trade in-game, come back and click \"Trade offered\", then once it actually goes through, click \"✓ Trade accepted\" PLS. This keeps everyone's collection accurate."
   }
 ];
 
 function startTutorial(){
+  const hasTarget =
+    document.querySelector('[data-action="start-contributing"]') ||
+    document.querySelector(".chip.active .chip-pencil");
+
+  // On first load, Firebase may not have rendered the account bar yet.
+  // Wait for the real UI instead of trying to highlight a non-existent element.
+  if(!hasTarget){
+    setTimeout(startTutorial, 100);
+    return;
+  }
+
   tutorialActive = true;
   tutorialStep = 0;
   showTutorialStep();
