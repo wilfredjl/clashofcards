@@ -95,6 +95,16 @@ header.app-head::before{
 }
 .mode-bar.contribute{border-color:var(--builder);background:var(--builder-dim);color:var(--ink);}
 .mode-bar .chip{margin-left:auto;}
+/* Account-creation row: label stays put, input grows/shrinks with available space,
+   buttons sit inline beside it and only wrap onto their own line when space runs out. */
+.mode-bar.account-form{align-items:center;}
+.account-form-row{
+  display:flex;align-items:center;gap:8px;flex:1 1 auto;flex-wrap:wrap;min-width:0;
+}
+.account-form-row #contributor-name-input{
+  flex:1 1 200px;min-width:120px;max-width:340px;
+}
+.account-form-row .chip{margin-left:0;flex:0 0 auto;}
 
 .banner-warn{
   background:var(--super-dim);border:1px solid var(--super);border-radius:12px;
@@ -102,23 +112,46 @@ header.app-head::before{
 }
 .banner-warn b{color:var(--ink);}
 
-/* ---------- Account bar ---------- */
-.account-bar{
-  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+/* ---------- Account panel (head row + grid of chips) ---------- */
+.account-panel{
   padding:12px 14px;background:var(--bg-elevated);border:1px solid var(--line);
   border-radius:14px;margin-bottom:16px;
 }
-.account-bar .label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-faint);margin-right:4px;}
+.account-panel-head{
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+  gap:8px 14px;margin-bottom:10px;
+}
+.account-panel-head .label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-faint);}
+.account-sort{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-faint);white-space:nowrap;}
+.account-sort select{
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+  padding:5.5px 8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;outline:none;
+}
+.account-sort select:hover,.account-sort select:focus{border-color:var(--gold);}
 .badge-hint{margin:-10px 2px 16px;font-size:11px;color:var(--ink-faint);}
+/* Account chips sit on a grid so every row lines up symmetrically instead of free-flowing. */
+.account-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:8px;
+}
+.account-grid:empty{display:none;}
 /* Account selectors are intentionally more block-like than the rounded
    action chips elsewhere in the interface. */
-.account-bar > .chip:not(.add){
+.account-grid > .chip{
   border-radius:8px;
-  padding:8px 13px;
+  padding:8px 12px;
   border-width:1px;
-  display:inline-flex;
+  display:flex;
   align-items:center;
+  width:100%;
+  min-width:0;
 }
+.chip-info{display:flex;flex-direction:column;align-items:flex-start;flex:1;min-width:0;line-height:1.2;text-align:left;}
+.chip-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chip-stat{font-size:9.5px;font-weight:700;color:var(--ink-faint);margin-top:1px;white-space:nowrap;}
+.chip.active .chip-stat{color:#241a05;opacity:.8;}
+.chip.chip-other-clan:not(.active) .chip-stat{color:var(--ink-faint);}
 .chip-badge{
   display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
   flex:none;margin-right:8px;line-height:1;border-radius:6px;padding:2px;
@@ -607,16 +640,23 @@ textarea{
   .mode-bar .chip{margin-left:0;}
   .mode-bar input.chip-input{flex:1 1 100%;max-width:none;}
 
-  .account-bar{
+  .account-form-row{gap:7px;}
+  .account-form-row .chip,.account-form-row #contributor-name-input{flex:1 1 100%;max-width:none;}
+
+  .account-panel{
     padding:10px;
-    gap:7px;
     margin-bottom:12px;
   }
-  .account-bar .label{width:100%;margin-right:0;margin-bottom:1px;}
-  .account-bar .chip{padding:7px 11px;font-size:12px;}
+  .account-panel-head{margin-bottom:8px;}
+  .account-panel-head .label{width:100%;}
+  .account-sort{width:100%;justify-content:space-between;}
+  .account-sort select{flex:1;min-width:0;}
+  .account-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:7px;}
+  .account-grid > .chip{padding:7px 10px;font-size:12px;}
   .chip-badge img{width:15px;height:15px;}
   .chip-badge-tag{font-size:6.5px;}
   .chip-badge{margin-right:6px;}
+  .chip-stat{font-size:9px;}
 
   .view-tabs{padding:0 4px;}
   .view-tab{padding:9px 11px 8px;font-size:12px;}
@@ -985,6 +1025,7 @@ let currentCategory = "elixir";
 let viewingAccount = null;   // slug
 let editingAccount = null;   // slug
 let becomingContributor = false;
+let accountSortMode = "default"; // "default" | "name" | "collected" | "trades"
 
 // Tutorial state
 let tutorialActive = false;
@@ -1364,11 +1405,13 @@ function renderModeBar(){
     </div>`;
   }
   if(becomingContributor){
-    return `<div class="mode-bar">
+    return `<div class="mode-bar account-form">
       <span>Your real in-game account name:</span>
-      <input type="text" id="contributor-name-input" class="chip-input" placeholder="e.g. YourClasherName" maxlength="24" autocomplete="off">
-      <button class="chip" data-action="confirm-contributor">Confirm</button>
-      <button class="chip add" data-action="cancel-contributor">Cancel</button>
+      <div class="account-form-row">
+        <input type="text" id="contributor-name-input" class="chip-input" placeholder="e.g. barbarianboy" maxlength="24" autocomplete="off">
+        <button class="chip" data-action="confirm-contributor">Confirm</button>
+        <button class="chip add" data-action="cancel-contributor">Cancel</button>
+      </div>
     </div>`;
   }
   if(canEditViewing()){
@@ -1383,8 +1426,32 @@ function renderModeBar(){
   </div>`;
 }
 
+const ACCOUNT_SORT_OPTIONS = [
+  ["default","Default order"],
+  ["name","Name (A–Z)"],
+  ["collected","Most cards collected"],
+  ["trades","Trades available"]
+];
+function accountCardsCollected(slug){
+  return activeCards().filter(c => getCount(slug,c.id) > 0).length;
+}
+function accountTradesAvailableCount(slug){
+  return eligibleTradePartners(slug).length;
+}
+function sortedAccountList(){
+  const list = accountsMeta.list.slice();
+  if(accountSortMode==="name"){
+    list.sort((a,b)=>a.name.localeCompare(b.name));
+  } else if(accountSortMode==="collected"){
+    list.sort((a,b)=>accountCardsCollected(b.slug)-accountCardsCollected(a.slug) || a.name.localeCompare(b.name));
+  } else if(accountSortMode==="trades"){
+    list.sort((a,b)=>accountTradesAvailableCount(b.slug)-accountTradesAvailableCount(a.slug) || a.name.localeCompare(b.name));
+  }
+  return list;
+}
 function renderAccountBar(){
-  const chips = accountsMeta.list.map(a => {
+  const totalCards = activeCards().length;
+  const chips = sortedAccountList().map(a => {
     if(a.slug === editingAccount){
       return `
       <span class="chip-edit-wrap">
@@ -1394,13 +1461,23 @@ function renderAccountBar(){
     const canManage = isAdmin() || (!a.locked && a.ownerUid === currentUid);
     const clanKey = clanOf(a);
     const otherClan = clanKey !== "AP";
+    let statHtml = "";
+    if(accountSortMode==="collected"){
+      statHtml = `<span class="chip-stat">${accountCardsCollected(a.slug)}/${totalCards} cards</span>`;
+    } else if(accountSortMode==="trades"){
+      const n = accountTradesAvailableCount(a.slug);
+      statHtml = `<span class="chip-stat">${n} trade${n===1?'':'s'} available</span>`;
+    }
     return `
     <button class="chip ${a.slug===viewingAccount?'active':''} ${otherClan?'chip-other-clan':''}" data-action="select-account" data-account="${escAttr(a.slug)}">
       <span class="chip-badge" ${canManage?`data-action="cycle-clan-badge" data-account="${escAttr(a.slug)}"`:''} title="${canManage?`Clan: ${clanKey} — tap to switch`:`Clan: ${clanKey}`}">
         <span class="chip-badge-tag">(${clanKey})</span>
         <img src="${CLAN_BADGES[clanKey]}" alt="${clanKey}">
       </span>
-      ${escHtml(a.name)}
+      <span class="chip-info">
+        <span class="chip-name">${escHtml(a.name)}</span>
+        ${statHtml}
+      </span>
       ${a.locked ? `<span class="chip-lock" title="Pre-established account — admin can manage this account">🔒</span>` : ''}
       ${canManage ? `<span class="chip-pencil" data-action="edit-account-name" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Rename account" : "Rename your account"}">✎</span>` : ''}
       ${canManage ? `<span class="chip-x" data-action="delete-account" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Delete account" : "Remove your account"}">✕</span>` : ''}
@@ -1408,11 +1485,21 @@ function renderAccountBar(){
   }).join("");
   const canManageAny = accountsMeta.list.some(a => isAdmin() || (!a.locked && a.ownerUid === currentUid));
   return `
-  <div class="account-bar">
-    <span class="label">Accounts</span>
-    ${chips || `<span style="color:var(--ink-faint);font-size:12.5px;">No accounts yet — be the first to add one.</span>`}
+  <div class="account-panel">
+    <div class="account-panel-head">
+      <span class="label">Accounts</span>
+      ${accountsMeta.list.length > 1 ? `
+      <label class="account-sort">Sort by
+        <select id="account-sort" data-action="sort-accounts">
+          ${ACCOUNT_SORT_OPTIONS.map(([val,label])=>`<option value="${val}" ${accountSortMode===val?'selected':''}>${label}</option>`).join("")}
+        </select>
+      </label>` : ''}
+    </div>
+    <div class="account-grid">
+      ${chips || `<span style="color:var(--ink-faint);font-size:12.5px;">No accounts yet — be the first to add one.</span>`}
+    </div>
   </div>
-  ${canManageAny ? `<p class="badge-hint">💡 Tap the badge on your account's chip to cycle its clan — (AP) → (SL) → (MF).</p>` : ''}`;
+  ${canManageAny ? `<p class="badge-hint">💡 Tap the clan badge to cycle (AP) → (SL) → (MF).</p>` : ''}`;
 }
 
 function focusAccountInput(){
@@ -1742,7 +1829,7 @@ function renderTradeView(){
         return `
         <button type="button" class="partner-card ${active?'active':''} ${isContested?'contested':''}" data-action="select-trade-partner" data-partner="${escAttr(p.slug)}">
           <span class="partner-badges">
-            ${isContested ? `<span class="partner-warn" title="Someone else is also eligible for this card and there's only one spare — first to accept gets it.">⚠</span>` : ``}
+            ${isContested ? `<span class="partner-warn" title="Someone else is also eligible for this card and there's only one, first to accept gets it.">⚠</span>` : ``}
             ${active ? `<span class="partner-check">✓</span>` : ``}
           </span>
           <span class="avatar-circle">${escHtml(avatarInitial(p.name))}</span>
@@ -2196,6 +2283,12 @@ function onClick(e){
 
 function onChange(e){
   const t = e.target;
+
+  if(t.id === "account-sort"){
+    accountSortMode = t.value;
+    render();
+    return;
+  }
 
   if(t.dataset && t.dataset.role==="give-card"){
     const catKey = t.dataset.cat;
