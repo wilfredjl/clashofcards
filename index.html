@@ -450,6 +450,11 @@ const firebaseConfig = {
   appId: "1:538563896276:web:4f741acc11e57cf782ac41"
 };
 
+// Admin identity for managing locked/pre-established accounts.
+// Replace this once with your Firebase Auth UID.
+// The UID is shown in Import / Export when you are not yet configured.
+const ADMIN_UID = "QscorS2HZsO7C0Iw7PTSI3sgW0A2";
+
 const fbApp = initializeApp(firebaseConfig);
 const auth  = getAuth(fbApp);
 const db    = getFirestore(fbApp);
@@ -545,6 +550,7 @@ function getCount(slug, cardId){ return (collections[slug] && collections[slug][
 function accountBySlug(slug){ return accountsMeta.list.find(a=>a.slug===slug); }
 function accName(slug){ const a = accountBySlug(slug); return a ? a.name : slug; }
 function accountLocked(slug){ const a = accountBySlug(slug); return !!(a && a.locked); }
+function isAdmin(){ return !!(currentUid && ADMIN_UID !== "PASTE_YOUR_ADMIN_UID_HERE" && currentUid === ADMIN_UID); }
 
 // Recomputed every time accounts data or the signed-in identity changes.
 function recomputeSettings(){
@@ -555,7 +561,9 @@ function recomputeSettings(){
 function canEditViewing(){
   if(!viewingAccount || !currentUid) return false;
   const a = accountBySlug(viewingAccount);
-  return !!(a && !a.locked && a.ownerUid === currentUid);
+  if(!a) return false;
+  if(isAdmin()) return true;
+  return !!(!a.locked && a.ownerUid === currentUid);
 }
 
 /* ---------------- Toast / status ---------------- */
@@ -643,12 +651,16 @@ async function createOrClaimAccount(name){
 }
 
 async function renameAccount(slug, newName){
+  const account = accountBySlug(slug);
+  if(!account) return false;
+  if(account.locked && !isAdmin()) return false;
+  if(!account.locked && account.ownerUid !== currentUid && !isAdmin()) return false;
   try{
     await updateDoc(doc(db,"accounts",slug), { name: newName });
     return true;
   }catch(e){
     console.error("rename failed", e);
-    flashStatus("⚠ Rename failed — you can only rename an account you own.");
+    flashStatus(isAdmin() ? "⚠ Admin rename failed — check your Firestore rules." : "⚠ Rename failed — you can only rename an account you own.");
     return false;
   }
 }
@@ -699,8 +711,7 @@ async function logSwapTrade(aSlug, bSlug, aGiveCardId, bGiveCardId){
     flashStatus(`Logged: ${accName(aSlug)}'s ${aGiveCard.name} ⇄ ${accName(bSlug)}'s ${bGiveCard.name} — both binders updated.`);
   }catch(e){
     console.error("log swap trade failed", e);
-    const reason = e && e.code ? ` (${e.code})` : "";
-    flashStatus(`⚠ Trade log failed${reason} — likely a Firestore permission rule blocking the write, not a connection issue.`);
+    flashStatus("⚠ Trade log failed — check your connection.");
   }
 }
 
@@ -721,8 +732,7 @@ async function undoTrade(logId){
     flashStatus("Trade undone for everyone.");
   }catch(e){
     console.error("undo trade failed", e);
-    const reason = e && e.code ? ` (${e.code})` : "";
-    flashStatus(`⚠ Undo failed${reason} — likely a Firestore permission rule blocking the write, not a connection issue.`);
+    flashStatus("⚠ Undo failed — check your connection.");
   }
 }
 
@@ -867,6 +877,12 @@ function renderSyncBar(){
 }
 
 function renderModeBar(){
+  if(isAdmin() && viewingAccount && accountLocked(viewingAccount)){
+    return `<div class="mode-bar contribute">
+      <span>🔐 <b>Admin editing</b> ${escHtml(accName(viewingAccount))} — changes sync to everyone.</span>
+      <button class="chip add" data-action="exit-admin-edit">Exit admin edit</button>
+    </div>`;
+  }
   if(becomingContributor){
     return `<div class="mode-bar">
       <span>Your real in-game account name:</span>
@@ -895,7 +911,7 @@ function renderAccountBar(){
         <input type="text" class="chip-input" id="account-name-input" value="${escAttr(a.name)}" maxlength="24" autocomplete="off">
       </span>`;
     }
-    const canManage = !a.locked && a.ownerUid === currentUid;
+    const canManage = isAdmin() || (!a.locked && a.ownerUid === currentUid);
     return `
     <button class="chip ${a.slug===viewingAccount?'active':''}" data-action="select-account" data-account="${escAttr(a.slug)}">
       ${escHtml(a.name)}
@@ -1293,28 +1309,70 @@ function renderTradeView(){
   </div>`;
 }
 
+function buildAccountsExport(){
+  const accounts = accountsMeta.list.map(account => {
+    const cards = {};
+    roster.cards.forEach(card => {
+      cards[card.id] = getCount(account.slug, card.id);
+    });
+    return { name: account.name, cards };
+  });
+
+  const formatObject = (obj, indent) => {
+    const pad = ' '.repeat(indent);
+    const childPad = ' '.repeat(indent + 2);
+    const entries = Object.entries(obj);
+    return entries.map(([key, value]) => {
+      const safeKey = /^[A-Za-z_$][\\w$-]*$/.test(key) ? key : JSON.stringify(key);
+      return `${childPad}${safeKey}: ${JSON.stringify(value)}`;
+    }).join('\n');
+  };
+
+  const accountBlocks = accounts.map(account => {
+    const cardEntries = Object.entries(account.cards)
+      .map(([id, count]) => `      ${JSON.stringify(id)}: ${count}`)
+      .join(',\n');
+    return `  {\n    name: ${JSON.stringify(account.name)},\n    cards: {\n${cardEntries}\n    }\n  }`;
+  }).join(',\n');
+
+  return `const ACCOUNTS = [\n${accountBlocks}\n];`;
+}
+
 function renderDataView(){
-  const bundle = { roster, accounts: accountsMeta, collections, tradeLog };
-  const exportBlob = JSON.stringify(bundle, null, 2);
+  const exportBlob = buildAccountsExport();
+  const adminPanel = isAdmin() ? `
+` : `
+  <div class="panel-box">
+    <h3>🔐 Admin setup</h3>
+    <p>To enable locked-account editing on this browser, set <span class="mono">ADMIN_UID</span> in the HTML to your Firebase Auth UID.</p>
+    <p style="margin-top:8px;color:var(--ink-faint);font-size:12px;">Current anonymous Auth UID:</p>
+    <div class="mono" style="word-break:break-all;padding:9px;background:var(--panel);border:1px solid var(--line);border-radius:8px;">${escHtml(currentUid || "Not signed in")}</div>
+    <div class="btn-row" style="margin-top:9px;">
+      <button class="btn secondary" data-action="copy-admin-uid">Copy UID</button>
+    </div>
+    <p style="margin-top:9px;color:var(--ink-faint);font-size:11.5px;">After adding this UID to <span class="mono">ADMIN_UID</span> and allowing it in your Firestore rules, reload the page and this panel will become the admin editor.</p>
+  </div>`;
+
   return `
   <div class="banner-warn">
     <b>This gallery is shared and live.</b>
   </div>
+  ${adminPanel}
   <div class="panel-box">
-    <h3>Export a backup</h3>
-    <p>Snapshot of everything currently live.</p>
+    <h3>Export Accounts</h3>
+    <p>Exports every account and its card counts in <span class="mono">const ACCOUNTS = [...]</span> format.</p>
     <textarea readonly id="export-box">${escHtml(exportBlob)}</textarea>
     <div class="btn-row"><button class="btn secondary" data-action="copy-export">Copy to clipboard</button></div>
   </div>
   ${canEditViewing() ? `
   <div class="panel-box">
     <h3>Quick bulk-set for "${escHtml(accName(viewingAccount))}"</h3>
-    <p>Format: <span class="mono">card-id:count</span>, comma-separated. IDs are in the Card List tab. Example: <span class="mono">barbarian:2, archer:1, golem:0</span></p>
+    <p>Format: <span class="mono">card-id:count</span>, comma-separated. IDs are in the Card List tab.</p>
     <textarea id="bulk-box" placeholder="barbarian:2, archer:1, hog-rider:3"></textarea>
     <div class="btn-row"><button class="btn" data-action="bulk-set">Apply to ${escHtml(accName(viewingAccount))}</button></div>
   </div>` : ``}
   <div class="panel-box">
-    <p style="margin:0;"><b>Note on Supercell's export:</b> the village-data JSON export from Clash of Clans does not include Clash of Cards.</p>
+    <p style="margin:0;"><b>Note:</b> The export contains only account names and card counts. Firebase metadata and trade history are not included.</p>
   </div>`;
 }
 
@@ -1403,8 +1461,15 @@ function onClick(e){
   if(action==="replay-tutorial"){ startTutorial(); return; }
 
   if(action==="select-account"){ viewingAccount = el.dataset.account; recomputeSettings(); render(); return; }
+  if(action==="exit-admin-edit"){
+    if(isAdmin()) viewingAccount = settings.myAccount || (accountsMeta.list[0] ? accountsMeta.list[0].slug : null);
+    render();
+    return;
+  }
   if(action==="edit-account-name"){
     e.stopPropagation();
+    const target = accountBySlug(el.dataset.account);
+    if(!target || (target.locked ? !isAdmin() : (!isAdmin() && target.ownerUid !== currentUid))) return;
     editingAccount = el.dataset.account;
     render();
     focusAccountInput();
@@ -1415,7 +1480,7 @@ function onClick(e){
     const slug = el.dataset.account;
     if(accountLocked(slug)) return;
     const a = accountBySlug(slug);
-    if(!a || a.ownerUid !== currentUid) return;
+    if(!a || (!isAdmin() && a.ownerUid !== currentUid)) return;
     if(confirm(`Remove "${a.name}" and its collection from the shared gallery? This can't be undone.`)){
       (async ()=>{
         await deleteAccountAndCollection(slug);
@@ -1466,6 +1531,27 @@ function onClick(e){
     return;
   }
   if(action==="undo-trade"){ undoTrade(el.dataset.logid); return; }
+
+  if(action==="admin-select-locked"){
+    if(!isAdmin()) return;
+    const locked = accountsMeta.list.filter(a=>a.locked);
+    if(!locked.length){ flashStatus("No locked accounts found."); return; }
+    const menu = locked.map((a,i)=>`${i+1}. ${a.name}`).join("\n");
+    const answer = prompt(`Choose a locked account to edit:\n\n${menu}\n\nEnter the number:`);
+    const index = Number(answer) - 1;
+    if(!Number.isInteger(index) || !locked[index]) return;
+    viewingAccount = locked[index].slug;
+    currentView = "binder";
+    render();
+    flashStatus(`Admin editing ${locked[index].name}.`);
+    return;
+  }
+
+  if(action==="copy-admin-uid"){
+    if(!currentUid) return;
+    navigator.clipboard?.writeText(currentUid).then(()=>flashStatus("Admin UID copied."));
+    return;
+  }
 
   if(action==="copy-export"){
     const box = document.getElementById("export-box");
