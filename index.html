@@ -1222,7 +1222,7 @@ function renderTradeView(){
       : partners.map(p=>`<button class="chip ${p.slug===tradePartner?'active':''}" data-action="select-trade-partner" data-partner="${escAttr(p.slug)}">${escHtml(p.name)}</button>`).join("")}
   </div>`;
 
-  let swapSectionsHtml = `<div class="empty-note">Nobody has a duplicate ${escHtml(accName(acct))} needs while also needing one of ${escHtml(accName(acct))}'s duplicates in the same category. Trades only work as an even swap — both sides bring a card to the table.</div>`;
+  let swapSectionsHtml = `<div class="empty-note">Nobody has a duplicate ${escHtml(accName(acct))} needs while also needing one of ${escHtml(accName(acct))}'s duplicates in the same category.</div>`;
 
   if(tradePartner){
     const cats = computeSwapCategories(acct, tradePartner);
@@ -1295,7 +1295,7 @@ function renderTradeView(){
 
   return `
   <div class="panel-box" style="margin-bottom:14px;">
-    <p style="margin:0;">A trade is an even swap: both accounts give up one duplicate <b>from the same category</b>. Pick a partner, pick what each side gives, tap <b>Trade offered</b> once you've proposed it face-to-face, then <b>Trade accepted</b> once it's actually done — that updates <b>both</b> binders at once. Made a mistake? <b>Undo</b> below reverses it for everyone.</p>
+    <p style="margin:0;">Please re-enact the trades in-game down here as well. This helps keep the collection up-to-date.</p>
   </div>
   <div class="trade-filter-row">
     <input type="text" id="trade-search" placeholder="Search a card…" value="${escAttr(tradeFilterQuery)}">
