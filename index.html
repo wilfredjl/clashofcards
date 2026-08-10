@@ -414,10 +414,19 @@ table.matrix td.cell{font-family:'JetBrains Mono',monospace;}
 .btn.tiny.confirm{background:linear-gradient(135deg,#3ecf8e,#2a9d6a);color:#0c2117;border:none;}
 .btn.tiny.confirm:hover{filter:brightness(1.08);}
 
+/* ---------- Trade history log (with mini card thumbnails) ---------- */
 .trade-item{
   display:flex;justify-content:space-between;align-items:center;gap:10px;
   padding:8px 10px;border-radius:8px;background:var(--panel);margin-bottom:6px;font-size:13px;
 }
+.trade-item-left{display:flex;align-items:center;gap:9px;min-width:0;flex:1 1 auto;}
+.trade-item-thumbs{display:flex;align-items:center;gap:4px;flex:none;}
+.trade-item-thumb{
+  width:26px;height:26px;border-radius:7px;overflow:hidden;flex:none;
+  border:1.5px solid var(--catcolor,var(--line));
+  background:radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--catcolor,#888) 30%, transparent), var(--catbg, var(--slot)));
+}
+.trade-item-thumb img{width:100%;height:100%;object-fit:contain;padding:3px;display:block;}
 .trade-item .tag{font-size:10px;padding:2px 7px;border-radius:999px;color:#fff;white-space:nowrap;}
 .trade-item-right{display:flex;align-items:center;gap:8px;flex:none;}
 .btn.tiny{padding:5px 10px;font-size:11.5px;border-radius:7px;white-space:nowrap;}
@@ -546,6 +555,10 @@ textarea{
   .panel-box p{font-size:12px;}
 
   .trade-filter-row input[type="text"]{min-width:0;}
+
+  .trade-item{flex-wrap:wrap;}
+  .trade-item-left{flex:1 1 100%;}
+  .trade-item-right{flex:1 1 100%;justify-content:flex-end;}
 
   .trade-hero{padding:12px 14px;gap:10px;}
   .trade-hero .avatar-circle{width:38px;height:38px;font-size:16px;}
@@ -1051,7 +1064,7 @@ function renderHeader(){
   <header class="app-head">
     <div class="title-block">
       <h1>🃏Card Binder</h1>
-      <p><b>Autism Prime Max.</b>  Trading closes Sep&nbsp;2, 08:00&nbsp;UTC.</p>
+      <p><b>Autism Prime Max.</b>  Trading closes Sep&nbsp;2, 16:00&nbsp;SGT.</p>
     </div>
     <div class="event-clock">
       <div class="label">Trading window</div>
@@ -1349,7 +1362,7 @@ function renderMatrixView(){
   });
   return `
   <div class="panel-box" style="margin-bottom:14px;">
-    <p style="margin:0;">Every account in the gallery, every card. <b style="color:var(--gold)">Gold</b> means a duplicate, ready to trade.</p>
+    <p style="margin:0;">Every account stored in the binder <b style="color:var(--gold)">Gold</b> means a duplicate, ready to trade.</p>
   </div>
   <div class="matrix-wrap">
     <table class="matrix">
@@ -1525,9 +1538,19 @@ function renderTradeView(){
   const log = (tradeLog.entries||[]).filter(t => t.aSlug===acct || t.bSlug===acct || t.fromSlug===acct || t.toSlug===acct).slice().reverse().slice(0,50);
   const logHtml = !log.length ? `<div class="empty-note">No trades logged yet for ${escHtml(accName(acct))}.</div>` : log.map(t=>{
     if(t.aGivesCardId){
-      const cat = catInfo(t.category) || {hex:'#888'};
+      const cat = catInfo(t.category) || {hex:'#888', dim:'var(--slot)'};
+      const aCard = roster.cards.find(c=>c.id===t.aGivesCardId);
+      const bCard = roster.cards.find(c=>c.id===t.bGivesCardId);
+      const aImg = aCard ? imageFor(aCard) : "";
+      const bImg = bCard ? imageFor(bCard) : "";
       return `<div class="trade-item">
-        <span><span class="tag" style="background:${cat.hex};margin-right:6px;">${cat.label ? cat.label.replace(' Troops','') : ''}</span>${escHtml(t.aName)} gave <b>${escHtml(t.aGivesCardName)}</b> <span class="trade-arrow" style="font-size:12px;">⇄</span> ${escHtml(t.bName)} gave <b>${escHtml(t.bGivesCardName)}</b></span>
+        <div class="trade-item-left">
+          <div class="trade-item-thumbs">
+            <div class="trade-item-thumb" style="--catcolor:${cat.hex};--catbg:${cat.dim};">${aImg?`<img src="${escAttr(aImg)}" alt="">`:''}</div>
+            <div class="trade-item-thumb" style="--catcolor:${cat.hex};--catbg:${cat.dim};">${bImg?`<img src="${escAttr(bImg)}" alt="">`:''}</div>
+          </div>
+          <span><span class="tag" style="background:${cat.hex};margin-right:6px;">${cat.label ? cat.label.replace(' Troops','') : ''}</span>${escHtml(t.aName)} gave <b>${escHtml(t.aGivesCardName)}</b> <span class="trade-arrow" style="font-size:12px;">⇄</span> ${escHtml(t.bName)} gave <b>${escHtml(t.bGivesCardName)}</b></span>
+        </div>
         <div class="trade-item-right">
           <span class="log-time">${timeAgo(t.ts)}</span>
           <button class="btn tiny secondary" data-action="undo-trade" data-logid="${t.id}">Undo</button>
@@ -1535,9 +1558,15 @@ function renderTradeView(){
       </div>`;
     }
     const card = roster.cards.find(c=>c.id===t.cardId);
-    const cat = card ? catInfo(card.category) : {hex:'#888'};
+    const cat = card ? catInfo(card.category) : {hex:'#888', dim:'var(--slot)'};
+    const img = card ? imageFor(card) : "";
     return `<div class="trade-item">
-      <span>${escHtml(t.cardName)} <span class="tag" style="background:${cat.hex};margin-left:6px;">${cat.label ? cat.label.replace(' Troops','') : ''}</span> — <span style="color:var(--ink-dim);">${escHtml(t.fromName)} → ${escHtml(t.toName)}</span></span>
+      <div class="trade-item-left">
+        <div class="trade-item-thumbs">
+          <div class="trade-item-thumb" style="--catcolor:${cat.hex};--catbg:${cat.dim};">${img?`<img src="${escAttr(img)}" alt="">`:''}</div>
+        </div>
+        <span>${escHtml(t.cardName)} <span class="tag" style="background:${cat.hex};margin-left:6px;">${cat.label ? cat.label.replace(' Troops','') : ''}</span> — <span style="color:var(--ink-dim);">${escHtml(t.fromName)} → ${escHtml(t.toName)}</span></span>
+      </div>
       <div class="trade-item-right">
         <span class="log-time">${timeAgo(t.ts)}</span>
         <button class="btn tiny secondary" data-action="undo-trade" data-logid="${t.id}">Undo</button>
