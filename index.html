@@ -922,7 +922,7 @@ function renderAccountBar(){
   }).join("");
   return `
   <div class="account-bar">
-    <span class="label">Gallery accounts</span>
+    <span class="label">Accounts</span>
     ${chips || `<span style="color:var(--ink-faint);font-size:12.5px;">No accounts yet — be the first to add one.</span>`}
     <button class="chip add" data-action="replay-tutorial" style="margin-left:auto;" title="Replay the setup guide">↺ Guide</button>
   </div>`;
@@ -956,7 +956,7 @@ async function finishAccountEdit(cancel){
 
 function renderViewTabs(){
   const tabs = [
-    ["binder","Gallery Binder"],
+    ["binder","Binder"],
     ["matrix","Collection Matrix"],
     ["trade","Trade Finder"],
     ["data","Import / Export"],
