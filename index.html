@@ -108,6 +108,13 @@ header.app-head::before{
   border-radius:14px;margin-bottom:16px;
 }
 .account-bar .label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-faint);margin-right:4px;}
+/* Account selectors are intentionally more block-like than the rounded
+   action chips elsewhere in the interface. */
+.account-bar > .chip:not(.add){
+  border-radius:8px;
+  padding:8px 13px;
+  border-width:1px;
+}
 .chip{
   padding:7px 14px;border-radius:999px;border:1px solid var(--line);
   background:var(--panel);color:var(--ink-dim);font-size:13.5px;font-weight:600;
@@ -136,18 +143,67 @@ header.app-head::before{
   box-shadow:0 0 0 3px var(--gold-glow);
 }
 
-/* ---------- Nav tabs ---------- */
-.view-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
+/* ---------- Section navigation ---------- */
+.view-tabs{
+  display:flex;
+  gap:0;
+  margin:0;
+  padding:0 8px;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  border-bottom:1px solid var(--line);
+}
 .view-tab{
-  padding:9px 16px;border-radius:10px;border:1px solid transparent;
-  background:transparent;color:var(--ink-faint);font-weight:600;font-size:13.5px;
-  cursor:pointer;font-family:inherit;
+  position:relative;
+  padding:11px 18px 10px;
+  margin:0;
+  border:1px solid transparent;
+  border-bottom:none;
+  border-radius:9px 9px 0 0;
+  background:transparent;
+  color:var(--ink-faint);
+  font-weight:700;
+  font-size:13.5px;
+  cursor:pointer;
+  font-family:inherit;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.view-tab:hover{
+  color:var(--ink);
+  background:var(--bg-elevated);
+}
+.view-tab.active{
+  color:var(--ink);
+  background:var(--bg-elevated);
+  border-color:var(--line);
+  margin-bottom:-1px;
+  padding-top:12px;
+}
+.view-tab.active::after{
+  content:"";
+  position:absolute;
+  left:10px;
+  right:10px;
+  bottom:-1px;
+  height:2px;
+  background:var(--gold);
+  border-radius:2px 2px 0 0;
 }
 .view-tab:hover{color:var(--ink-dim);}
 .view-tab.active{background:var(--panel);color:var(--gold);border-color:var(--line);}
 
-.view{display:none;}
-.view.active{display:block;}
+.view{
+  display:none;
+}
+.view.active{
+  display:block;
+  background:var(--bg-elevated);
+  border:1px solid var(--line);
+  border-top:none;
+  border-radius:0 10px 10px 10px;
+  padding:16px;
+  margin-bottom:18px;
+}
 
 /* ---------- Category tabs + progress ---------- */
 .cat-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
@@ -297,16 +353,6 @@ table.matrix td.cell{font-family:'JetBrains Mono',monospace;}
 .cell-1{color:var(--ink);}
 .cell-dup{color:var(--gold);font-weight:700;background:rgba(232,184,75,.08);border-radius:6px;}
 
-/* ---------- Trade finder ---------- */
-.trade-filter-row{
-  display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;
-}
-.trade-filter-row input[type="text"]{
-  flex:1;min-width:160px;background:var(--panel);color:var(--ink);border:1px solid var(--line);
-  border-radius:10px;padding:9px 12px;font-family:inherit;font-size:13.5px;
-}
-.trade-filter-row label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-dim);white-space:nowrap;}
-
 .trade-arrow{color:var(--gold);font-size:17px;line-height:1;}
 
 /* ---------- "You" hero ---------- */
@@ -344,9 +390,9 @@ table.matrix td.cell{font-family:'JetBrains Mono',monospace;}
   display:flex;align-items:center;justify-content:center;font-family:'Luckiest Guy',cursive;
   background:var(--slot);color:var(--ink-dim);
 }
-.partner-card .meta{min-width:0;}
-.partner-card .pname{font-weight:700;font-size:13.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.partner-card .pcount{font-size:10.5px;color:var(--ink-faint);margin-top:2px;}
+.partner-card .meta{min-width:0;flex:1 1 auto;display:block;}
+.partner-card .pname{display:block;font-weight:700;font-size:13.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.partner-card .pcount{display:block;font-size:10.5px;color:var(--ink-faint);margin-top:2px;}
 .partner-card.active{
   border-color:var(--gold);
   background:linear-gradient(135deg, color-mix(in srgb, var(--gold) 18%, var(--panel)), var(--panel));
@@ -432,6 +478,22 @@ table.matrix td.cell{font-family:'JetBrains Mono',monospace;}
   background:radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--catcolor,#888) 30%, transparent), var(--catbg, var(--slot)));
 }
 .trade-item-thumb img{width:100%;height:100%;object-fit:contain;padding:3px;display:block;}
+.trade-item-thumb.given{
+  border-color:#ef5350;
+  box-shadow:0 0 0 2px rgba(239,83,80,.18), 0 0 10px rgba(239,83,80,.16);
+}
+.trade-item-thumb.received{
+  border-color:#3ecf8e;
+  box-shadow:0 0 0 2px rgba(62,207,142,.18), 0 0 10px rgba(62,207,142,.16);
+}
+.trade-item-thumb .trade-direction{
+  position:absolute;right:1px;bottom:1px;width:12px;height:12px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;font-weight:900;line-height:1;color:#fff;
+  border:1px solid rgba(0,0,0,.45);box-shadow:0 1px 3px rgba(0,0,0,.45);
+}
+.trade-item-thumb.given .trade-direction{background:#ef5350;}
+.trade-item-thumb.received .trade-direction{background:#3ecf8e;color:#082116;}
 .trade-item .tag{font-size:10px;padding:2px 7px;border-radius:999px;color:#fff;white-space:nowrap;}
 .trade-item-right{display:flex;align-items:center;gap:8px;flex:none;}
 .btn.tiny{padding:5px 10px;font-size:11.5px;border-radius:7px;white-space:nowrap;}
@@ -509,10 +571,10 @@ textarea{
   }
   .account-bar .label{width:100%;margin-right:0;margin-bottom:1px;}
   .account-bar .chip{padding:7px 11px;font-size:12px;}
-  .account-bar .chip.add[title="Replay the setup guide"]{margin-left:0 !important;}
 
-  .view-tabs{gap:5px;margin-bottom:12px;}
-  .view-tab{padding:8px 11px;font-size:12px;}
+  .view-tabs{padding:0 4px;}
+  .view-tab{padding:9px 11px 8px;font-size:12px;}
+  .view-tab.active{padding-top:10px;}
 
   .overall-bar{
     gap:10px;
@@ -531,6 +593,11 @@ textarea{
   .cat-dot{width:8px;height:8px;}
   .cat-progress-track{height:5px;}
   .cat-count{font-size:9.5px;margin-top:5px;}
+
+  .view.active{
+    padding:12px;
+    border-radius:0 8px 8px 8px;
+  }
 
   .binder-page{
     padding:14px 14px 16px 22px;
@@ -627,6 +694,28 @@ textarea{
 .tutorial-btn.skip:hover{color:var(--ink);}
 .tutorial-btn.next{background:linear-gradient(135deg,var(--gold),#c9922f);color:#241a05;}
 .tutorial-btn.next:hover{filter:brightness(1.08);}
+
+/* ---------- Binder card-grid centering ---------- */
+/* The ring-hole decoration is absolutely positioned, so it does not need
+   extra left padding on the content area. Equal horizontal padding keeps
+   the 6-card grid geometrically centered inside the binder. */
+.binder-page{
+  padding-left:33px;
+  padding-right:33px;
+}
+@media(max-width:760px){
+  .binder-page{
+    padding-left:14px;
+    padding-right:14px;
+  }
+}
+@media(max-width:380px){
+  .binder-page{
+    padding-left:12px;
+    padding-right:12px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -738,8 +827,6 @@ let becomingContributor = false;
 // Tutorial state
 let tutorialActive = false;
 let tutorialStep = 0;
-let tradeFilterCat = "all";
-let tradeFilterQuery = "";
 let pendingTradeOffers = new Map(); // key "from::to::category" -> {from, to, category, giveCardId, giveCardName, getCardId, getCardName}
 let tradePartner = null;            // slug of the account the viewingAccount is currently trading with
 let swapChoice = {};                // category key -> {give: cardId, get: cardId}, last picked options per category
@@ -1087,7 +1174,7 @@ function renderHeader(){
   <header class="app-head">
     <div class="title-block">
       <h1>🃏Card Binder</h1>
-      <p><b>Autism Prime Max.</b>  Trading closes Sep&nbsp;2, 08:00&nbsp;UTC.</p>
+      <p><b>Autism Prime Max.</b>  Trading closes Sep&nbsp;2, 16:00&nbsp;SGT.</p>
     </div>
     <div class="event-clock">
       <div class="label">Trading window</div>
@@ -1102,6 +1189,7 @@ function renderSyncBar(){
   return `<div class="sync-bar">
     <span class="sync-dot"></span> Live gallery · synced ${ts}
     <button class="btn secondary tiny" data-action="refresh-now">Refresh now</button>
+    <button class="btn secondary tiny" data-action="replay-tutorial" title="Replay the setup guide">↺ Guide</button>
   </div>`;
 }
 
@@ -1153,7 +1241,6 @@ function renderAccountBar(){
   <div class="account-bar">
     <span class="label">Accounts</span>
     ${chips || `<span style="color:var(--ink-faint);font-size:12.5px;">No accounts yet — be the first to add one.</span>`}
-    <button class="chip add" data-action="replay-tutorial" style="margin-left:auto;" title="Replay the setup guide">↺ Guide</button>
   </div>`;
 }
 
@@ -1398,12 +1485,6 @@ function renderMatrixView(){
 }
 
 /* ---------------- Trade Finder: same-category swaps between the selected account and a partner ---------------- */
-function passesTradeFilter(card){
-  if(tradeFilterCat!=="all" && card.category!==tradeFilterCat) return false;
-  if(tradeFilterQuery && !card.name.toLowerCase().includes(tradeFilterQuery.toLowerCase())) return false;
-  return true;
-}
-
 // For a given account + potential partner, find every category where BOTH sides have
 // something to give (a duplicate the other one is missing) — since a trade is a same-category
 // swap, a category only counts if both accounts bring a duplicate to the table.
@@ -1411,7 +1492,7 @@ function computeSwapCategories(acct, partnerSlug){
   if(!acct || !partnerSlug || acct===partnerSlug) return [];
   const out = [];
   CATEGORIES.forEach(cat=>{
-    const cardsHere = cardsInCat(cat.key).filter(passesTradeFilter);
+    const cardsHere = cardsInCat(cat.key);
     const iGive = cardsHere.filter(c => getCount(acct,c.id)>=2 && getCount(partnerSlug,c.id)===0);
     const iGet  = cardsHere.filter(c => getCount(partnerSlug,c.id)>=2 && getCount(acct,c.id)===0);
     if(iGive.length && iGet.length) out.push({cat, iGive, iGet});
@@ -1428,8 +1509,6 @@ function eligibleTradePartners(acct){
 
 function renderTradeView(){
   const acct = viewingAccount;
-  const catOpts = [`<option value="all">All categories</option>`]
-    .concat(CATEGORIES.map(c=>`<option value="${c.key}" ${tradeFilterCat===c.key?'selected':''}>${c.label}</option>`)).join("");
 
   if(!acct || accountsMeta.list.length<2){
     return `
@@ -1560,7 +1639,8 @@ function renderTradeView(){
     }
   }
 
-  // Trade history involving this account, most recent first (supports both swap-format and legacy single-direction entries).
+  // Trade history involving this account, most recent first.
+  // The selected account's given-away card is red and received card is green.
   const log = (tradeLog.entries||[]).filter(t => t.aSlug===acct || t.bSlug===acct || t.fromSlug===acct || t.toSlug===acct).slice().reverse().slice(0,50);
   const logHtml = !log.length ? `<div class="empty-note">No trades logged yet for ${escHtml(accName(acct))}.</div>` : log.map(t=>{
     if(t.aGivesCardId){
@@ -1569,13 +1649,26 @@ function renderTradeView(){
       const bCard = roster.cards.find(c=>c.id===t.bGivesCardId);
       const aImg = aCard ? imageFor(aCard) : "";
       const bImg = bCard ? imageFor(bCard) : "";
+      const aIsSelected = t.aSlug===acct;
+      const givenImg = aIsSelected ? aImg : bImg;
+      const receivedImg = aIsSelected ? bImg : aImg;
+      const givenName = aIsSelected ? t.aGivesCardName : t.bGivesCardName;
+      const receivedName = aIsSelected ? t.bGivesCardName : t.aGivesCardName;
+      const givenBy = aIsSelected ? t.aName : t.bName;
+      const receivedFrom = aIsSelected ? t.bName : t.aName;
       return `<div class="trade-item">
         <div class="trade-item-left">
           <div class="trade-item-thumbs">
-            <div class="trade-item-thumb" style="--catcolor:${cat.hex};--catbg:${cat.dim};">${aImg?`<img src="${escAttr(aImg)}" alt="">`:''}</div>
-            <div class="trade-item-thumb" style="--catcolor:${cat.hex};--catbg:${cat.dim};">${bImg?`<img src="${escAttr(bImg)}" alt="">`:''}</div>
+            <div class="trade-item-thumb given" style="--catcolor:${cat.hex};--catbg:${cat.dim};" title="Given away: ${escAttr(givenName)}">
+              ${givenImg?`<img src="${escAttr(givenImg)}" alt="">`:''}
+              <span class="trade-direction">−</span>
+            </div>
+            <div class="trade-item-thumb received" style="--catcolor:${cat.hex};--catbg:${cat.dim};" title="Received: ${escAttr(receivedName)}">
+              ${receivedImg?`<img src="${escAttr(receivedImg)}" alt="">`:''}
+              <span class="trade-direction">+</span>
+            </div>
           </div>
-          <span><span class="tag" style="background:${cat.hex};margin-right:6px;">${cat.label ? cat.label.replace(' Troops','') : ''}</span>${escHtml(t.aName)} gave <b>${escHtml(t.aGivesCardName)}</b> <span class="trade-arrow" style="font-size:12px;">⇄</span> ${escHtml(t.bName)} gave <b>${escHtml(t.bGivesCardName)}</b></span>
+          <span><span class="tag" style="background:${cat.hex};margin-right:6px;">${cat.label ? cat.label.replace(' Troops','') : ''}</span>${escHtml(givenBy)} gave <b>${escHtml(givenName)}</b> <span class="trade-arrow" style="font-size:12px;">⇄</span> ${escHtml(receivedFrom)} gave <b>${escHtml(receivedName)}</b></span>
         </div>
         <div class="trade-item-right">
           <span class="log-time">${timeAgo(t.ts)}</span>
@@ -1586,10 +1679,17 @@ function renderTradeView(){
     const card = roster.cards.find(c=>c.id===t.cardId);
     const cat = card ? catInfo(card.category) : {hex:'#888', dim:'var(--slot)'};
     const img = card ? imageFor(card) : "";
+    const isGiven = t.fromSlug===acct;
+    const directionClass = isGiven ? "given" : "received";
+    const directionSymbol = isGiven ? "−" : "+";
+    const directionLabel = isGiven ? "Given away" : "Received";
     return `<div class="trade-item">
       <div class="trade-item-left">
         <div class="trade-item-thumbs">
-          <div class="trade-item-thumb" style="--catcolor:${cat.hex};--catbg:${cat.dim};">${img?`<img src="${escAttr(img)}" alt="">`:''}</div>
+          <div class="trade-item-thumb ${directionClass}" style="--catcolor:${cat.hex};--catbg:${cat.dim};" title="${directionLabel}: ${escAttr(t.cardName)}">
+            ${img?`<img src="${escAttr(img)}" alt="">`:''}
+            <span class="trade-direction">${directionSymbol}</span>
+          </div>
         </div>
         <span>${escHtml(t.cardName)} <span class="tag" style="background:${cat.hex};margin-left:6px;">${cat.label ? cat.label.replace(' Troops','') : ''}</span> — <span style="color:var(--ink-dim);">${escHtml(t.fromName)} → ${escHtml(t.toName)}</span></span>
       </div>
@@ -1605,10 +1705,6 @@ function renderTradeView(){
     <p style="margin:0;">Please re-enact the trades in-game down here as well. This helps keep the collection up-to-date.</p>
   </div>
   ${heroHtml}
-  <div class="trade-filter-row">
-    <input type="text" id="trade-search" placeholder="Search a card…" value="${escAttr(tradeFilterQuery)}">
-    <select id="trade-cat-filter">${catOpts}</select>
-  </div>
   ${partnerPickerHtml}
   ${swapSectionsHtml}
   <div class="panel-box">
@@ -1886,8 +1982,6 @@ function onClick(e){
 function onChange(e){
   const t = e.target;
 
-  if(t.id==="trade-search"){ tradeFilterQuery = t.value; render(); return; }
-  if(t.id==="trade-cat-filter"){ tradeFilterCat = t.value; render(); return; }
   if(t.dataset && t.dataset.role==="give-card"){
     const catKey = t.dataset.cat;
     swapChoice[catKey] = swapChoice[catKey] || {};
