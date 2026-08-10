@@ -122,12 +122,29 @@ header.app-head::before{
   gap:8px 14px;margin-bottom:10px;
 }
 .account-panel-head .label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-faint);}
-.account-sort{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-faint);white-space:nowrap;}
-.account-sort select{
-  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;
-  padding:5.5px 8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;outline:none;
+.account-sort{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-faint);white-space:nowrap;flex-wrap:wrap;}
+.account-sort .sort-label{text-transform:uppercase;letter-spacing:1.5px;font-size:11px;color:var(--ink-faint);}
+.account-sort .sort-btn{
+  background:var(--panel);color:var(--ink-dim);border:1px solid var(--line);border-radius:8px;
+  padding:5.5px 10px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;outline:none;
+  transition:border-color .15s,color .15s,background .15s;
 }
-.account-sort select:hover,.account-sort select:focus{border-color:var(--gold);}
+.account-sort .sort-btn:hover{border-color:var(--gold);color:var(--ink);}
+.account-sort .sort-btn.active{
+  background:rgba(232,184,75,.14);border-color:var(--gold);color:var(--gold);
+}
+.account-count{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:22px;height:22px;padding:0 7px;margin-left:8px;
+  border-radius:999px;background:rgba(232,184,75,.14);
+  border:1px solid var(--gold);color:var(--gold);
+  font-size:12px;font-weight:700;
+  animation:count-glow 2.2s ease-in-out infinite;
+}
+@keyframes count-glow{
+  0%,100%{box-shadow:0 0 3px var(--gold-glow);}
+  50%{box-shadow:0 0 11px var(--gold-glow),0 0 4px var(--gold-glow);}
+}
 .badge-hint{margin:-10px 2px 16px;font-size:11px;color:var(--ink-faint);}
 /* Account chips sit on a grid so every row lines up symmetrically instead of free-flowing. */
 .account-grid{
@@ -648,9 +665,9 @@ textarea{
     margin-bottom:12px;
   }
   .account-panel-head{margin-bottom:8px;}
-  .account-panel-head .label{width:100%;}
-  .account-sort{width:100%;justify-content:space-between;}
-  .account-sort select{flex:1;min-width:0;}
+  .account-panel-head .label{width:auto;}
+  .account-sort{width:100%;}
+  .account-sort .sort-btn{flex:1;}
   .account-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:7px;}
   .account-grid > .chip{padding:7px 10px;font-size:12px;}
   .chip-badge img{width:15px;height:15px;}
@@ -1025,7 +1042,7 @@ let currentCategory = "elixir";
 let viewingAccount = null;   // slug
 let editingAccount = null;   // slug
 let becomingContributor = false;
-let accountSortMode = "default"; // "default" | "name" | "collected" | "trades"
+let accountSortMode = "name"; // "name" | "collected" | "trades"
 
 // Tutorial state
 let tutorialActive = false;
@@ -1427,8 +1444,7 @@ function renderModeBar(){
 }
 
 const ACCOUNT_SORT_OPTIONS = [
-  ["default","Default order"],
-  ["name","Name (A–Z)"],
+  ["name","Name"],
   ["collected","Most cards collected"],
   ["trades","Trades available"]
 ];
@@ -1487,13 +1503,12 @@ function renderAccountBar(){
   return `
   <div class="account-panel">
     <div class="account-panel-head">
-      <span class="label">Accounts</span>
+      <span class="label">Accounts<span class="account-count">${accountsMeta.list.length}</span></span>
       ${accountsMeta.list.length > 1 ? `
-      <label class="account-sort">Sort by
-        <select id="account-sort" data-action="sort-accounts">
-          ${ACCOUNT_SORT_OPTIONS.map(([val,label])=>`<option value="${val}" ${accountSortMode===val?'selected':''}>${label}</option>`).join("")}
-        </select>
-      </label>` : ''}
+      <div class="account-sort">
+        <span class="sort-label">Sort:</span>
+        ${ACCOUNT_SORT_OPTIONS.map(([val,label])=>`<button type="button" class="sort-btn${accountSortMode===val?' active':''}" data-action="sort-accounts" data-sort="${val}">${label}</button>`).join("")}
+      </div>` : ''}
     </div>
     <div class="account-grid">
       ${chips || `<span style="color:var(--ink-faint);font-size:12.5px;">No accounts yet — be the first to add one.</span>`}
@@ -2103,6 +2118,7 @@ function onClick(e){
 
   if(action==="set-view"){ currentView = el.dataset.view; render(); return; }
   if(action==="set-category"){ scrollToCategory(el.dataset.cat); return; }
+  if(action==="sort-accounts"){ accountSortMode = el.dataset.sort; render(); return; }
 
   if(action==="start-contributing"){ becomingContributor = true; render(); return; }
   if(action==="cancel-contributor"){ becomingContributor = false; render(); return; }
@@ -2283,12 +2299,6 @@ function onClick(e){
 
 function onChange(e){
   const t = e.target;
-
-  if(t.id === "account-sort"){
-    accountSortMode = t.value;
-    render();
-    return;
-  }
 
   if(t.dataset && t.dataset.role==="give-card"){
     const catKey = t.dataset.cat;
