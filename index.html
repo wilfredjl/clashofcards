@@ -699,7 +699,8 @@ async function logSwapTrade(aSlug, bSlug, aGiveCardId, bGiveCardId){
     flashStatus(`Logged: ${accName(aSlug)}'s ${aGiveCard.name} ⇄ ${accName(bSlug)}'s ${bGiveCard.name} — both binders updated.`);
   }catch(e){
     console.error("log swap trade failed", e);
-    flashStatus("⚠ Trade log failed — check your connection.");
+    const reason = e && e.code ? ` (${e.code})` : "";
+    flashStatus(`⚠ Trade log failed${reason} — likely a Firestore permission rule blocking the write, not a connection issue.`);
   }
 }
 
@@ -720,7 +721,8 @@ async function undoTrade(logId){
     flashStatus("Trade undone for everyone.");
   }catch(e){
     console.error("undo trade failed", e);
-    flashStatus("⚠ Undo failed — check your connection.");
+    const reason = e && e.code ? ` (${e.code})` : "";
+    flashStatus(`⚠ Undo failed${reason} — likely a Firestore permission rule blocking the write, not a connection issue.`);
   }
 }
 
