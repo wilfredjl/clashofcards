@@ -55,10 +55,11 @@ header.app-head{
 header.app-head::before{
   content:"";position:absolute;inset:0;
   background:
-    linear-gradient(90deg, transparent 0 96%, rgba(232,184,75,.06) 96% 100%),
     repeating-linear-gradient(135deg, rgba(255,255,255,.02) 0 2px, transparent 2px 14px);
   pointer-events:none;
+  z-index:0;
 }
+.title-block{position:relative;z-index:1;}
 .title-block h1{
   font-family:'Bungee',cursive;
   font-size:26px;
@@ -69,6 +70,7 @@ header.app-head::before{
 }
 .title-block p{margin:0;color:var(--ink-dim);font-size:13.5px;max-width:520px;line-height:1.5;}
 .event-clock{
+  position:relative;z-index:1;isolation:isolate;
   text-align:right;font-family:'JetBrains Mono',monospace;
   background:var(--panel);border:1px solid var(--line);border-radius:12px;
   padding:10px 16px;
@@ -76,6 +78,28 @@ header.app-head::before{
 .event-clock .label{font-size:10px;letter-spacing:1.5px;color:var(--ink-faint);text-transform:uppercase;}
 .event-clock .value{font-size:19px;color:var(--gold);font-weight:600;}
 .event-clock .sub{font-size:10.5px;color:var(--ink-dim);margin-top:2px;}
+
+/* ---------- Sync / mode bars ---------- */
+.sync-bar{
+  display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-dim);
+  padding:8px 14px;margin-bottom:10px;
+}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--builder);box-shadow:0 0 8px var(--builder);flex:none;}
+.btn.tiny.secondary{padding:5px 12px;font-size:11px;}
+
+.mode-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:11px 14px;border-radius:12px;margin-bottom:14px;
+  background:var(--bg-elevated);border:1px solid var(--line);font-size:13px;color:var(--ink-dim);
+}
+.mode-bar.contribute{border-color:var(--builder);background:var(--builder-dim);color:var(--ink);}
+.mode-bar .chip{margin-left:auto;}
+
+.banner-warn{
+  background:var(--super-dim);border:1px solid var(--super);border-radius:12px;
+  padding:12px 14px;font-size:12.5px;color:var(--ink-dim);line-height:1.5;margin-bottom:14px;
+}
+.banner-warn b{color:var(--ink);}
 
 /* ---------- Account bar ---------- */
 .account-bar{
@@ -100,7 +124,8 @@ header.app-head::before{
 .chip-x:hover{opacity:1;}
 .chip-pencil{margin-left:8px;opacity:.5;font-weight:400;font-size:12px;display:inline-block;}
 .chip-pencil:hover{opacity:1;}
-.chip.active .chip-pencil,.chip.active .chip-x{opacity:.7;}
+.chip-lock{margin-left:7px;opacity:.6;font-size:11px;}
+.chip.active .chip-pencil,.chip.active .chip-x,.chip.active .chip-lock{opacity:.7;}
 .chip.active .chip-pencil:hover,.chip.active .chip-x:hover{opacity:1;}
 .chip-edit-wrap{display:inline-flex;align-items:center;}
 .chip-input{
@@ -153,6 +178,10 @@ header.app-head::before{
 .overall-bar .ring span{position:relative;z-index:1;}
 .overall-bar .txt{font-size:13px;color:var(--ink-dim);}
 .overall-bar .txt b{color:var(--ink);}
+.overall-bar .readonly-tag{
+  margin-left:auto;font-size:11px;color:var(--ink-faint);border:1px solid var(--line);
+  padding:4px 10px;border-radius:999px;white-space:nowrap;
+}
 
 /* ---------- Binder grid (ring holes) ---------- */
 .binder-page{
@@ -177,10 +206,6 @@ header.app-head::before{
 }
 .card-slot:hover{transform:translateY(-2px);}
 
-/* Art window: image is *contained*, not cropped, sitting inside a tinted
-   panel in the card's own category colour — this is what the border colour
-   "becoming" the card's background actually looks like without drowning
-   the artwork or the name in a single flat hue. */
 .card-art{
   position:relative;flex:1 1 auto;min-height:0;
   display:flex;align-items:center;justify-content:center;
@@ -242,10 +267,11 @@ header.app-head::before{
   font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;
   background:var(--bg-elevated);color:var(--ink);
 }
-.excl-tag{
+.excl-tag, .readonly-count{
   text-align:center;font-size:9px;letter-spacing:.4px;text-transform:uppercase;
   color:var(--ink-faint);padding:7px 2px;background:var(--panel);
 }
+.readonly-count{font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:none;letter-spacing:0;color:var(--ink-dim);}
 
 /* ---------- Matrix view ---------- */
 .matrix-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--bg-elevated);}
@@ -267,15 +293,29 @@ table.matrix td.cell{font-family:'JetBrains Mono',monospace;}
 .cell-dup{color:var(--gold);font-weight:700;background:rgba(232,184,75,.08);border-radius:6px;}
 
 /* ---------- Trade finder ---------- */
-.trade-select{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:18px;}
-.trade-select select{
-  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;
-  padding:9px 12px;font-family:inherit;font-size:14px;
+.trade-filter-row{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;
 }
-.trade-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-@media(max-width:700px){.trade-cols{grid-template-columns:1fr;}}
-.trade-col{background:var(--bg-elevated);border:1px solid var(--line);border-radius:14px;padding:16px;}
-.trade-col h3{margin:0 0 12px;font-size:14px;color:var(--gold);}
+.trade-filter-row input[type="text"]{
+  flex:1;min-width:160px;background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  border-radius:10px;padding:9px 12px;font-family:inherit;font-size:13.5px;
+}
+.trade-filter-row label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-dim);white-space:nowrap;}
+
+.duptrade-list{display:flex;flex-direction:column;gap:8px;margin-bottom:22px;}
+.duptrade-row{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:10px 12px;border-radius:10px;background:var(--bg-elevated);border:1px solid var(--line);font-size:13px;
+}
+.duptrade-row .who{font-weight:700;}
+.duptrade-row .tag{font-size:10px;padding:2px 7px;border-radius:999px;color:#fff;white-space:nowrap;}
+.duptrade-row .spare{font-family:'JetBrains Mono',monospace;color:var(--gold);font-weight:700;font-size:12px;}
+.duptrade-row select{
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+  padding:6px 8px;font-family:inherit;font-size:12.5px;
+}
+.duptrade-row .duptrade-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;}
+
 .trade-item{
   display:flex;justify-content:space-between;align-items:center;gap:10px;
   padding:8px 10px;border-radius:8px;background:var(--panel);margin-bottom:6px;font-size:13px;
@@ -300,6 +340,7 @@ textarea{
 }
 .btn.secondary{background:var(--panel);color:var(--ink);border:1px solid var(--line);}
 .btn.danger{background:#4a2130;color:#ffb4c6;border:1px solid #6b2f42;}
+.btn:disabled{opacity:.4;cursor:default;}
 .btn-row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
 .status-msg{font-size:12.5px;margin-top:8px;color:var(--builder);}
 
@@ -314,15 +355,67 @@ textarea{
 @media(max-width:640px){.editor-row{grid-template-columns:1fr;}}
 
 .loading{text-align:center;padding:60px 20px;color:var(--ink-dim);font-family:'JetBrains Mono',monospace;}
+
+/* ---------- Global toast ---------- */
+.global-toast{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);
+  background:var(--bg-elevated);border:1px solid var(--gold);color:var(--ink);
+  padding:10px 18px;border-radius:10px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.5);
+  opacity:0;pointer-events:none;transition:.2s ease;z-index:10500;max-width:90vw;text-align:center;
+}
+.global-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ---------- Onboarding tutorial ---------- */
+.tutorial-root{position:fixed;inset:0;z-index:9998;}
+.tutorial-mask{
+  position:fixed;background:rgba(8,7,18,.82);z-index:9998;
+  pointer-events:auto;transition:all .22s ease;
+}
+.tutorial-ring{
+  position:fixed;z-index:9999;pointer-events:none;border-radius:14px;
+  border:2px solid var(--gold);
+  box-shadow:0 0 0 4px var(--gold-glow), 0 0 26px var(--gold-glow);
+  transition:all .22s ease;
+}
+.tutorial-card{
+  position:fixed;z-index:10000;width:300px;max-width:calc(100vw - 24px);
+  background:var(--bg-elevated);border:1px solid var(--gold);border-radius:14px;
+  padding:16px 18px;box-shadow:0 10px 34px rgba(0,0,0,.55);
+  transition:top .22s ease,left .22s ease;
+}
+.tutorial-progress{
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--gold);margin-bottom:6px;
+}
+.tutorial-card h4{margin:0 0 6px;font-family:'Luckiest Guy',cursive;font-size:18px;color:var(--ink);letter-spacing:.3px;}
+.tutorial-card p{margin:0 0 14px;font-size:13px;line-height:1.5;color:var(--ink-dim);}
+.tutorial-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.tutorial-btn{border:none;border-radius:8px;padding:8px 15px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:'Inter',sans-serif;}
+.tutorial-btn.skip{background:transparent;color:var(--ink-faint);padding-left:2px;}
+.tutorial-btn.skip:hover{color:var(--ink);}
+.tutorial-btn.next{background:linear-gradient(135deg,var(--gold),#c9922f);color:#241a05;}
+.tutorial-btn.next:hover{filter:brightness(1.08);}
 </style>
 </head>
 <body>
 <div class="wrap" id="app">
-  <div class="loading">Loading your binder…</div>
+  <div class="loading">Loading the gallery…</div>
 </div>
+<div class="tutorial-root" id="tutorial-root" style="display:none;"></div>
 
 <script>
-const STORAGE_KEY = "coc-cards-app-data";
+/* ============================================================
+   STORAGE KEYS
+   Shared keys are visible to EVERY user of this artifact link.
+   Personal keys are scoped to the current browser/user only.
+   ============================================================ */
+const K_ROSTER      = "gallery-roster";       // shared: { cards:[...], schemaVersion }
+const K_ACCOUNTS    = "gallery-accounts";     // shared: { list:[{name, locked}] }
+const K_COLLECTIONS = "gallery-collections";  // shared: { [account]: { [cardId]: count } }
+const K_TRADELOG    = "gallery-tradelog";     // shared: { entries:[...] }
+const K_SETTINGS    = "my-gallery-settings";  // personal: { mode, myAccount }
+const LEGACY_KEY     = "coc-cards-app-data";  // old personal single-user format (pre-gallery)
+const TUTORIAL_KEY   = "coc-tutorial-seen-v2";
 
 const CATEGORIES = [
   {key:"elixir",      label:"Elixir Troops",       color:"var(--elixir)",      hex:"#ff2e9a", dim:"var(--elixir-dim)"},
@@ -331,7 +424,7 @@ const CATEGORIES = [
   {key:"superTroop",  label:"Super Troops",        color:"var(--super)",       hex:"#ff5722", dim:"var(--super-dim)"}
 ];
 
-// Official droptable order, as confirmed by the user from the in-game Collection screen.
+// Official droptable order, as confirmed from the in-game Collection screen.
 const DEFAULT_CARDS = [
   // Elixir Troops (19)
   ["elixir","barbarian","Barbarian"],["elixir","archer","Archer"],["elixir","giant","Giant"],
@@ -367,91 +460,181 @@ const DEFAULT_CARDS = [
 ].map(([category,id,name]) => ({id,category,name,excluded:false}));
 
 const SCHEMA_VERSION = 2;
-const ID_RENAME_MAP = { "super-pekka-bb":"power-pekka" }; // old id -> new id, so logged counts survive the rebuild
+const ID_RENAME_MAP = { "super-pekka-bb":"power-pekka" };
 
-let DATA = null;
+/* ---------------- State ---------------- */
+let roster = null;         // { cards:[...], schemaVersion }
+let accountsMeta = null;   // { list:[{name, locked}] }
+let collections = null;    // { account: { cardId: count } }
+let tradeLog = null;       // { entries:[...] }
+let settings = null;       // { mode:'view'|'contribute', myAccount:string|null }
+
 let currentView = "binder";
 let currentCategory = "elixir";
-let tradeA = null, tradeB = null;
+let viewingAccount = null;
 let editingAccount = null;
+let becomingContributor = false;
+let tradeFilterCat = "all";
+let tradeFilterQuery = "";
+let tradeFilterNeedsOnly = false;
+let lastSyncTs = null;
+let statusTimer = null;
+let pollTimer = null;
 
 function catInfo(key){ return CATEGORIES.find(c=>c.key===key); }
 
-function migrateToOfficialRoster(data){
-  // Replaces the reconstructed card list with the confirmed official droptable,
-  // carrying over any counts already logged (remapping ids that changed names).
-  if(data.schemaVersion === SCHEMA_VERSION) return false;
-  Object.values(data.collections || {}).forEach(col=>{
-    Object.keys(ID_RENAME_MAP).forEach(oldId=>{
-      if(col[oldId] !== undefined){
-        const newId = ID_RENAME_MAP[oldId];
-        col[newId] = (col[newId] || 0) + col[oldId];
-        delete col[oldId];
-      }
-    });
-  });
-  data.cards = DEFAULT_CARDS.map(c=>({...c}));
-  data.schemaVersion = SCHEMA_VERSION;
-  return true;
+/* ---------------- Raw storage helpers ---------------- */
+async function getSharedRaw(key){
+  try{ const res = await window.storage.get(key, true); return (res && res.value) ? JSON.parse(res.value) : null; }
+  catch(e){ return null; }
+}
+async function setSharedRaw(key, obj){
+  try{ await window.storage.set(key, JSON.stringify(obj), true); return true; }
+  catch(e){ console.error("shared save failed", key, e); flashStatus("⚠ Sync failed — your change may not be visible to others yet."); return false; }
+}
+async function getPersonalRaw(key){
+  try{ const res = await window.storage.get(key, false); return (res && res.value) ? JSON.parse(res.value) : null; }
+  catch(e){ return null; }
+}
+async function setPersonalRaw(key, obj){
+  try{ await window.storage.set(key, JSON.stringify(obj), false); }
+  catch(e){ console.error("personal save failed", key, e); }
+}
+// Refetch-then-mutate-then-write: reduces (does not eliminate) collision damage
+// from two people editing the shared blob at the same moment.
+async function withFreshShared(key, mutator, fallback){
+  let latest = fallback;
+  try{
+    const res = await window.storage.get(key, true);
+    if(res && res.value) latest = JSON.parse(res.value);
+  }catch(e){ /* use fallback */ }
+  mutator(latest);
+  await setSharedRaw(key, latest);
+  return latest;
 }
 
-async function loadData(){
-  try{
-    const res = await window.storage.get(STORAGE_KEY, false);
-    if(res && res.value){
-      const existing = JSON.parse(res.value);
-      if(migrateToOfficialRoster(existing)) await saveData(existing);
-      return existing;
+/* ---------------- Load / migrate ---------------- */
+async function loadAll(){
+  let r = await getSharedRaw(K_ROSTER);
+  if(!r){
+    r = { cards: DEFAULT_CARDS.map(c=>({...c})), schemaVersion: SCHEMA_VERSION };
+    await setSharedRaw(K_ROSTER, r);
+  }
+  roster = r;
+
+  let a = await getSharedRaw(K_ACCOUNTS);
+  let c = await getSharedRaw(K_COLLECTIONS);
+  if(!a || !c){
+    // one-time best-effort pickup of this browser's pre-gallery personal data
+    const legacy = await getPersonalRaw(LEGACY_KEY);
+    if(legacy && legacy.accounts && legacy.collections){
+      a = { list: legacy.accounts.map(name=>({name, locked:false})) };
+      c = legacy.collections;
+    } else {
+      a = { list: [{name:"Clasher", locked:false}] };
+      c = { "Clasher": {} };
     }
-  }catch(e){ /* key doesn't exist yet */ }
-  const seed = {
-    cards: DEFAULT_CARDS.map(c=>({...c})),
-    accounts: ["Clasher"],
-    collections: { "Clasher": {} },
-    selectedAccount: "Clasher",
-    schemaVersion: SCHEMA_VERSION
-  };
-  await saveData(seed);
-  return seed;
+    await setSharedRaw(K_ACCOUNTS, a);
+    await setSharedRaw(K_COLLECTIONS, c);
+  }
+  accountsMeta = a;
+  collections = c;
+
+  if(roster.schemaVersion !== SCHEMA_VERSION){
+    Object.values(collections).forEach(col=>{
+      Object.keys(ID_RENAME_MAP).forEach(oldId=>{
+        if(col[oldId] !== undefined){
+          const newId = ID_RENAME_MAP[oldId];
+          col[newId] = (col[newId]||0) + col[oldId];
+          delete col[oldId];
+        }
+      });
+    });
+    roster.cards = DEFAULT_CARDS.map(c=>({...c}));
+    roster.schemaVersion = SCHEMA_VERSION;
+    await setSharedRaw(K_ROSTER, roster);
+    await setSharedRaw(K_COLLECTIONS, collections);
+  }
+
+  let t = await getSharedRaw(K_TRADELOG);
+  if(!t){ t = { entries: [] }; await setSharedRaw(K_TRADELOG, t); }
+  tradeLog = t;
+
+  let s = await getPersonalRaw(K_SETTINGS);
+  if(!s) s = { mode: "view", myAccount: null };
+  settings = s;
+
+  const stillExists = settings.myAccount && accountsMeta.list.find(x=>x.name===settings.myAccount);
+  viewingAccount = stillExists ? settings.myAccount : (accountsMeta.list[0] ? accountsMeta.list[0].name : null);
 }
 
-async function saveData(data){
-  try{
-    await window.storage.set(STORAGE_KEY, JSON.stringify(data), false);
-  }catch(e){
-    console.error("Storage save failed", e);
-    flashStatus("⚠ Could not save — your last change may not persist.");
+/* ---------------- Derived data ---------------- */
+function activeCards(){ return roster.cards.filter(c=>!c.excluded); }
+function cardsInCat(cat){ return roster.cards.filter(c=>c.category===cat && !c.excluded); }
+function getCount(account, cardId){ return (collections[account] && collections[account][cardId]) || 0; }
+function canEditViewing(){ return settings.mode==='contribute' && settings.myAccount && viewingAccount===settings.myAccount; }
+function accountLocked(name){ const a = accountsMeta.list.find(x=>x.name===name); return !!(a && a.locked); }
+
+async function bumpCount(account, cardId, delta){
+  if(!collections[account]) collections[account] = {};
+  collections[account][cardId] = Math.max(0, (collections[account][cardId]||0) + delta);
+  render();
+  const latest = await withFreshShared(K_COLLECTIONS, latest=>{
+    if(!latest[account]) latest[account] = {};
+    latest[account][cardId] = Math.max(0, (latest[account][cardId]||0) + delta);
+  }, collections);
+  collections = latest;
+}
+
+/* ---------------- Toast / status ---------------- */
+function flashStatus(msg){
+  let el = document.getElementById("global-toast");
+  if(!el){
+    el = document.createElement("div");
+    el.id = "global-toast";
+    el.className = "global-toast";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(()=>{ el.classList.remove("show"); }, 2600);
+}
+
+/* ---------------- Sync polling ---------------- */
+async function refreshFromServer(manual){
+  const [r,a,c,t] = await Promise.all([
+    getSharedRaw(K_ROSTER), getSharedRaw(K_ACCOUNTS), getSharedRaw(K_COLLECTIONS), getSharedRaw(K_TRADELOG)
+  ]);
+  let changed = false;
+  if(r && JSON.stringify(r) !== JSON.stringify(roster)){ roster = r; changed = true; }
+  if(a && JSON.stringify(a) !== JSON.stringify(accountsMeta)){
+    accountsMeta = a; changed = true;
+    if(!accountsMeta.list.find(x=>x.name===viewingAccount)) viewingAccount = accountsMeta.list[0] ? accountsMeta.list[0].name : null;
+  }
+  if(c && JSON.stringify(c) !== JSON.stringify(collections)){ collections = c; changed = true; }
+  if(t && JSON.stringify(t) !== JSON.stringify(tradeLog)){ tradeLog = t; changed = true; }
+  lastSyncTs = Date.now();
+
+  const active = document.activeElement;
+  const appEl = document.getElementById("app");
+  const isTyping = active && appEl && appEl.contains(active) && ["INPUT","TEXTAREA","SELECT"].includes(active.tagName);
+
+  if((changed || manual) && !isTyping){
+    render();
+  } else {
+    const sb = document.querySelector(".sync-bar");
+    if(sb) sb.outerHTML = renderSyncBar();
   }
 }
 
-let statusTimer = null;
-function flashStatus(msg){
-  const el = document.getElementById("status-msg");
-  if(!el) return;
-  el.textContent = msg;
-  clearTimeout(statusTimer);
-  statusTimer = setTimeout(()=>{ el.textContent=""; }, 2500);
-}
-
-function activeCards(){ return DATA.cards.filter(c=>!c.excluded); }
-function cardsInCat(cat){ return DATA.cards.filter(c=>c.category===cat && !c.excluded); }
-
-function getCount(account, cardId){
-  return (DATA.collections[account] && DATA.collections[account][cardId]) || 0;
-}
-function setCount(account, cardId, val){
-  val = Math.max(0, val);
-  if(!DATA.collections[account]) DATA.collections[account] = {};
-  DATA.collections[account][cardId] = val;
-  saveData(DATA);
-}
-
 /* ---------------- Rendering ---------------- */
-
 function render(){
   const app = document.getElementById("app");
   app.innerHTML = `
     ${renderHeader()}
+    ${renderSyncBar()}
+    ${renderModeBar()}
     ${renderAccountBar()}
     ${renderViewTabs()}
     <div class="view ${currentView==='binder'?'active':''}" id="view-binder">${renderBinderView()}</div>
@@ -461,6 +644,8 @@ function render(){
     <div class="view ${currentView==='editor'?'active':''}" id="view-editor">${renderEditorView()}</div>
   `;
   attachHandlers();
+  if(becomingContributor) focusContributorInput();
+  if(editingAccount) focusAccountInput();
 }
 
 function renderHeader(){
@@ -481,7 +666,7 @@ function renderHeader(){
   <header class="app-head">
     <div class="title-block">
       <h1>🃏 Card Binder</h1>
-      <p>One binder, every clan account. Spot duplicates and trades at a glance. Trading closes Sep&nbsp;2, 08:00&nbsp;UTC.</p>
+      <p>One shared gallery, every clan account. Spot duplicates and trades at a glance. Trading closes Sep&nbsp;2, 08:00&nbsp;UTC.</p>
     </div>
     <div class="event-clock">
       <div class="label">Trading window</div>
@@ -491,26 +676,58 @@ function renderHeader(){
   </header>`;
 }
 
+function renderSyncBar(){
+  const ts = lastSyncTs ? timeAgo(lastSyncTs) : "just now";
+  return `<div class="sync-bar">
+    <span class="sync-dot"></span> Live gallery · synced ${ts}
+    <button class="btn secondary tiny" data-action="refresh-now">Refresh now</button>
+  </div>`;
+}
+
+function renderModeBar(){
+  if(settings.mode==='contribute' && settings.myAccount){
+    return `<div class="mode-bar contribute">
+      <span>✍️ Contributing as <b>${escHtml(settings.myAccount)}</b> — your taps sync to everyone viewing this gallery.</span>
+      <button class="chip" data-action="stop-contributing">Switch to view-only</button>
+    </div>`;
+  }
+  if(becomingContributor){
+    return `<div class="mode-bar">
+      <span>Your real in-game account name:</span>
+      <input type="text" id="contributor-name-input" class="chip-input" placeholder="e.g. YourClasherName" maxlength="24" autocomplete="off">
+      <button class="chip" data-action="confirm-contributor">Confirm</button>
+      <button class="chip add" data-action="cancel-contributor">Cancel</button>
+    </div>`;
+  }
+  return `<div class="mode-bar">
+    <span>👀 You're browsing the gallery in view-only mode.</span>
+    <button class="chip" data-action="start-contributing">+ Contribute my account</button>
+  </div>`;
+}
+
 function renderAccountBar(){
-  const chips = DATA.accounts.map(a => {
-    if(a === editingAccount){
+  const chips = accountsMeta.list.map(a => {
+    if(a.name === editingAccount){
       return `
       <span class="chip-edit-wrap">
-        <input type="text" class="chip-input" id="account-name-input" value="${escAttr(a)}" maxlength="24" autocomplete="off">
+        <input type="text" class="chip-input" id="account-name-input" value="${escAttr(a.name)}" maxlength="24" autocomplete="off">
       </span>`;
     }
+    const isMine = settings.mode==='contribute' && settings.myAccount===a.name;
+    const canManage = isMine && !a.locked;
     return `
-    <button class="chip ${a===DATA.selectedAccount?'active':''}" data-action="select-account" data-account="${escAttr(a)}">
-      ${escHtml(a)}
-      <span class="chip-pencil" data-action="edit-account-name" data-account="${escAttr(a)}" title="Rename account">✎</span>
-      ${DATA.accounts.length>1 ? `<span class="chip-x" data-action="delete-account" data-account="${escAttr(a)}" title="Remove account">✕</span>` : ''}
+    <button class="chip ${a.name===viewingAccount?'active':''}" data-action="select-account" data-account="${escAttr(a.name)}">
+      ${escHtml(a.name)}
+      ${a.locked ? `<span class="chip-lock" title="Pre-established account — can't be removed">🔒</span>` : ''}
+      ${canManage ? `<span class="chip-pencil" data-action="edit-account-name" data-account="${escAttr(a.name)}" title="Rename your account">✎</span>` : ''}
+      ${canManage ? `<span class="chip-x" data-action="delete-account" data-account="${escAttr(a.name)}" title="Remove your account">✕</span>` : ''}
     </button>`;
   }).join("");
   return `
   <div class="account-bar">
-    <span class="label">Accounts</span>
+    <span class="label">Gallery accounts</span>
     ${chips}
-    <button class="chip add" data-action="add-account">+ Add account</button>
+    <button class="chip add" data-action="replay-tutorial" style="margin-left:auto;" title="Replay the setup guide">↺ Guide</button>
   </div>`;
 }
 
@@ -520,15 +737,14 @@ function focusAccountInput(){
     if(input){ input.focus(); input.select(); }
   });
 }
-
-function nextTempAccountName(){
-  if(!DATA.accounts.includes("Clasher")) return "Clasher";
-  let n = 2;
-  while(DATA.accounts.includes(`Clasher ${n}`)) n++;
-  return `Clasher ${n}`;
+function focusContributorInput(){
+  requestAnimationFrame(()=>{
+    const input = document.getElementById("contributor-name-input");
+    if(input){ input.focus(); }
+  });
 }
 
-function finishAccountEdit(cancel){
+async function finishAccountEdit(cancel){
   if(editingAccount===null) return;
   const input = document.getElementById("account-name-input");
   const original = editingAccount;
@@ -537,36 +753,37 @@ function finishAccountEdit(cancel){
 
   const val = input.value.trim();
   if(!val || val===original){ render(); return; }
-
-  if(DATA.accounts.includes(val)){
-    alert(`You already have an account named "${val}".`);
+  if(accountsMeta.list.find(x=>x.name===val)){
+    alert(`Someone already has an account named "${val}" in this gallery.`);
     editingAccount = original;
     render();
     focusAccountInput();
     return;
   }
 
-  const idx = DATA.accounts.indexOf(original);
-  if(idx===-1){ render(); return; }
-  DATA.accounts[idx] = val;
-  DATA.collections[val] = DATA.collections[original];
-  delete DATA.collections[original];
-  if(DATA.selectedAccount===original) DATA.selectedAccount = val;
-  if(tradeA===original) tradeA = val;
-  if(tradeB===original) tradeB = val;
-  if(DATA.tradeLog){
-    DATA.tradeLog.forEach(t=>{
+  accountsMeta = await withFreshShared(K_ACCOUNTS, latest=>{
+    const acc = latest.list.find(x=>x.name===original);
+    if(acc) acc.name = val;
+  }, accountsMeta);
+  collections = await withFreshShared(K_COLLECTIONS, latest=>{
+    latest[val] = latest[original] || {};
+    delete latest[original];
+  }, collections);
+  tradeLog = await withFreshShared(K_TRADELOG, latest=>{
+    (latest.entries||[]).forEach(t=>{
       if(t.from===original) t.from = val;
       if(t.to===original) t.to = val;
     });
-  }
-  saveData(DATA);
+  }, tradeLog);
+
+  if(viewingAccount===original) viewingAccount = val;
+  if(settings.myAccount===original){ settings.myAccount = val; await setPersonalRaw(K_SETTINGS, settings); }
   render();
 }
 
 function renderViewTabs(){
   const tabs = [
-    ["binder","My Binder"],
+    ["binder","Gallery Binder"],
     ["matrix","Collection Matrix"],
     ["trade","Trade Finder"],
     ["data","Import / Export"],
@@ -578,7 +795,11 @@ function renderViewTabs(){
 }
 
 function renderBinderView(){
-  const acct = DATA.selectedAccount;
+  if(!viewingAccount){
+    return `<div class="empty-note">No accounts in the gallery yet. Add yourself via "+ Contribute my account" above.</div>`;
+  }
+  const acct = viewingAccount;
+  const editable = canEditViewing();
   const all = activeCards();
   const ownedTotal = all.filter(c => getCount(acct,c.id) > 0).length;
   const pct = all.length ? Math.round(ownedTotal/all.length*100) : 0;
@@ -595,15 +816,13 @@ function renderBinderView(){
     </div>`;
   }).join("");
 
-  // One continuous grid, 6 across, in official droptable order — same layout logic
-  // as the in-game HUD, so a category's first card can land mid-row (e.g. Minion
-  // sitting in slot 2 right after Meteor Golem finishes off the Elixir rows).
-  const cardsHtml = all.map(c => renderCardSlot(acct, c, catInfo(c.category))).join("");
+  const cardsHtml = all.map(c => renderCardSlot(acct, c, catInfo(c.category), editable)).join("");
 
   return `
   <div class="overall-bar" style="--pct:${pct}">
     <div class="ring"><span>${pct}%</span></div>
     <div class="txt"><b>${escHtml(acct)}</b> has collected <b>${ownedTotal}</b> of <b>${all.length}</b> tradeable cards.</div>
+    ${!editable ? `<span class="readonly-tag">Read-only${accountLocked(acct)?' · pre-established':''}</span>` : ''}
   </div>
   <div class="cat-row">${catCards}</div>
   <div class="binder-page">
@@ -611,7 +830,7 @@ function renderBinderView(){
   </div>`;
 }
 
-function renderCardSlot(acct, card, cat){
+function renderCardSlot(acct, card, cat, editable){
   const n = getCount(acct, card.id);
   const isExcluded = card.excluded;
   let cls = "card-slot";
@@ -624,12 +843,18 @@ function renderCardSlot(acct, card, cat){
   const imgVar = img ? `--cardimg:url('${img.replace(/'/g,"%27")}');` : "";
   const badge = (!isExcluded && n>=2) ? `<div class="card-dup-badge">×${n}</div>` : "";
 
-  const stepper = isExcluded ? `<div class="excl-tag">Not in event</div>` : `
-    <div class="card-stepper">
+  let stepper;
+  if(isExcluded){
+    stepper = `<div class="excl-tag">Not in event</div>`;
+  } else if(editable){
+    stepper = `<div class="card-stepper">
       <button data-action="dec" data-card="${escAttr(card.id)}" ${n<=0?'disabled':''}>−</button>
       <span class="count">${n}</span>
       <button data-action="inc" data-card="${escAttr(card.id)}">+</button>
     </div>`;
+  } else {
+    stepper = `<div class="readonly-count">${n} owned</div>`;
+  }
 
   return `
   <div id="slot-${escAttr(card.id)}" class="${cls}" style="--catcolor:${cat.hex};--catbg:${cat.dim};${imgVar}" title="${escAttr(card.name)}">
@@ -651,11 +876,8 @@ function scrollToCategory(catKey){
 }
 
 /* Two-tone colors per card, reflecting each troop's real dominant coloring
-   (e.g. Goblin -> green) rather than any copyrighted artwork — used as a
-   paint-blob gradient behind the card name. Falls back to a category tint
-   for anything not explicitly mapped (e.g. custom cards added later). */
+   (e.g. Goblin -> green) rather than any copyrighted artwork. */
 const CARD_COLORS = {
-  // Elixir
   "barbarian":"#FFC93C", "archer":"#FF4FA3", "giant":"#4FA8FF",
   "goblin":"#5BE85A", "wall-breaker":"#FF5A36", "balloon":"#FF6A3C",
   "wizard":"#3D8CFF", "healer":"#FF8FC0", "dragon":"#B24FFF",
@@ -663,18 +885,15 @@ const CARD_COLORS = {
   "electro-dragon":"#3EE8FF", "yeti":"#4FB8E0", "dragon-rider":"#FF7A3C",
   "electro-titan":"#FFE066", "root-rider":"#9BE85A", "thrower":"#7AD65A",
   "meteor-golem":"#5AD1FF",
-  // Dark Elixir
   "minion":"#A25AFF", "hog-rider":"#F0A860", "valkyrie":"#FF5A5A",
   "golem":"#C24FE0", "witch":"#A05AE0", "lava-hound":"#FF5A2E",
   "bowler":"#8FA3B8", "ice-golem":"#B8ECFF", "headhunter":"#A02EE0",
   "apprentice-warden":"#3CEBD6", "druid":"#7AD65A", "furnace":"#FFA23C",
   "ruin-witch":"#8C3CFF",
-  // Builder Base
   "raged-barbarian":"#FF7A3C", "sneaky-archer":"#5BE85A", "boxer-giant":"#FF8FC0",
   "beta-minion":"#7C7CFF", "bomber":"#FF3D2E", "baby-dragon-bb":"#3CEBAA",
   "cannon-cart":"#E0A860", "night-witch":"#8C3CFF", "drop-ship":"#8FB0D6",
   "power-pekka":"#FFD93D", "hog-glider":"#9BE85A",
-  // Super Troops
   "super-barbarian":"#FFD93D", "super-archer":"#FF6FA8", "super-giant":"#5AB8FF",
   "sneaky-goblin":"#5BE85A", "super-wall-breaker":"#FF3D00", "rocket-balloon":"#FF8C3E",
   "super-wizard":"#3D8CFF", "super-dragon":"#B24FFF", "inferno-dragon":"#FFA23C",
@@ -683,10 +902,7 @@ const CARD_COLORS = {
   "ice-hound":"#6FE8FF", "super-bowler":"#8FA3B8"
 };
 
-/* Paste an image URL for each troop here (in-game render, wiki art, whatever
-   you like). Leave a card as "" to keep its color-blob fallback instead. */
 const CARD_IMAGES = {
-  // Elixir
   "barbarian":"https://static.wikia.nocookie.net/clashofclans/images/8/87/Avatar_Barbarian.png/revision/latest/scale-to-width-down/120",
   "archer":"https://static.wikia.nocookie.net/clashofclans/images/6/68/Avatar_Archer.png/revision/latest/scale-to-width-down/120",
   "giant":"https://static.wikia.nocookie.net/clashofclans/images/7/7d/Avatar_Giant.png/revision/latest/scale-to-width-down/120",
@@ -706,7 +922,6 @@ const CARD_IMAGES = {
   "root-rider":"https://static.wikia.nocookie.net/clashofclans/images/0/0b/Avatar_Root_Rider.png/revision/latest/scale-to-width-down/120",
   "thrower":"https://static.wikia.nocookie.net/clashofclans/images/d/da/Avatar_Thrower.png/revision/latest/scale-to-width-down/120",
   "meteor-golem":"https://static.wikia.nocookie.net/clashofclans/images/0/01/Avatar_Meteor_Golem.png/revision/latest/scale-to-width-down/120",
-  // Dark Elixir
   "minion":"https://static.wikia.nocookie.net/clashofclans/images/3/3b/Avatar_Minion.png/revision/latest/scale-to-width-down/120",
   "hog-rider":"https://static.wikia.nocookie.net/clashofclans/images/e/e9/Avatar_Hog_Rider.png/revision/latest/scale-to-width-down/120",
   "valkyrie":"https://static.wikia.nocookie.net/clashofclans/images/3/31/Avatar_Valkyrie.png/revision/latest/scale-to-width-down/120",
@@ -720,7 +935,6 @@ const CARD_IMAGES = {
   "druid":"https://static.wikia.nocookie.net/clashofclans/images/4/43/Avatar_Druid.png/revision/latest/scale-to-width-down/120",
   "furnace":"https://static.wikia.nocookie.net/clashofclans/images/e/e0/Avatar_Furnace.png/revision/latest/scale-to-width-down/120",
   "ruin-witch":"https://static.wikia.nocookie.net/clashofclans/images/9/9e/Avatar_Ruin_Witch.png/revision/latest/scale-to-width-down/120",
-  // Builder Base
   "raged-barbarian":"https://static.wikia.nocookie.net/clashofclans/images/1/12/Avatar_Raged_Barbarian.png/revision/latest/scale-to-width-down/120",
   "sneaky-archer":"https://static.wikia.nocookie.net/clashofclans/images/8/8c/Avatar_Sneaky_Archer.png/revision/latest/scale-to-width-down/120",
   "boxer-giant":"https://static.wikia.nocookie.net/clashofclans/images/8/80/Avatar_Boxer_Giant.png/revision/latest/scale-to-width-down/120",
@@ -732,7 +946,6 @@ const CARD_IMAGES = {
   "drop-ship":"https://static.wikia.nocookie.net/clashofclans/images/8/8b/Avatar_Drop_Ship.png/revision/latest/scale-to-width-down/120",
   "power-pekka":"https://static.wikia.nocookie.net/clashofclans/images/3/3b/Avatar_Power_P.E.K.K.A.png/revision/latest/scale-to-width-down/120",
   "hog-glider":"https://static.wikia.nocookie.net/clashofclans/images/9/99/Avatar_Hog_Glider.png/revision/latest/scale-to-width-down/120",
-  // Super Troops
   "super-barbarian":"https://static.wikia.nocookie.net/clashofclans/images/81/81/Avatar_Super_Barbarian.png/revision/latest/scale-to-width-down/120",
   "super-archer":"https://static.wikia.nocookie.net/clashofclans/images/3a/3a/Avatar_Super_Archer.png/revision/latest/scale-to-width-down/120",
   "super-giant":"https://static.wikia.nocookie.net/clashofclans/images/6b/6b/Avatar_Super_Giant.png/revision/latest/scale-to-width-down/120",
@@ -758,7 +971,7 @@ function imageFor(card){
 }
 
 function renderMatrixView(){
-  const accts = DATA.accounts;
+  const accts = accountsMeta.list.map(a=>a.name);
   let rows = "";
   CATEGORIES.forEach(cat=>{
     rows += `<tr class="cat-sep" style="--catcolor:${cat.hex}"><td colspan="${accts.length+1}">${cat.label}</td></tr>`;
@@ -773,7 +986,7 @@ function renderMatrixView(){
   });
   return `
   <div class="panel-box" style="margin-bottom:14px;">
-    <p style="margin:0;">Every account, every card. <b style="color:var(--gold)">Gold</b> means a duplicate, ready to trade.</p>
+    <p style="margin:0;">Every account in the gallery, every card. <b style="color:var(--gold)">Gold</b> means a duplicate, ready to trade.</p>
   </div>
   <div class="matrix-wrap">
     <table class="matrix">
@@ -783,76 +996,81 @@ function renderMatrixView(){
   </div>`;
 }
 
-function renderTradeView(){
-  const accts = DATA.accounts;
-  if(!tradeA || !accts.includes(tradeA)) tradeA = accts[0];
-  if(!tradeB || !accts.includes(tradeB) || tradeB===tradeA) tradeB = accts.find(a=>a!==tradeA) || accts[0];
-
-  const optsA = accts.map(a=>`<option value="${escAttr(a)}" ${a===tradeA?'selected':''}>${escHtml(a)}</option>`).join("");
-  const optsB = accts.map(a=>`<option value="${escAttr(a)}" ${a===tradeB?'selected':''}>${escHtml(a)}</option>`).join("");
-
-  let aToB = [], bToA = [];
-  if(tradeA && tradeB && tradeA!==tradeB){
-    activeCards().forEach(c=>{
-      const na = getCount(tradeA,c.id), nb = getCount(tradeB,c.id);
-      if(na>=2 && nb===0) aToB.push(c);
-      if(nb>=2 && na===0) bToA.push(c);
+/* ---------------- Trade Finder: community duplicates board + public history ---------------- */
+function computeDuplicates(){
+  const rows = [];
+  activeCards().forEach(card=>{
+    accountsMeta.list.forEach(a=>{
+      const n = getCount(a.name, card.id);
+      const spare = n>=2 ? n-1 : 0;
+      if(spare<=0) return;
+      if(tradeFilterCat!=="all" && card.category!==tradeFilterCat) return;
+      if(tradeFilterQuery && !card.name.toLowerCase().includes(tradeFilterQuery.toLowerCase())) return;
+      if(tradeFilterNeedsOnly){
+        if(!settings.myAccount) return;
+        if(a.name===settings.myAccount) return;
+        if(getCount(settings.myAccount, card.id) > 0) return;
+      }
+      rows.push({account:a.name, card, spare});
     });
-  }
+  });
+  return rows;
+}
 
-  function list(items, direction){
-    if(!tradeA || !tradeB || tradeA===tradeB) return `<div class="empty-note">Pick two different accounts to compare.</div>`;
-    if(!items.length) return `<div class="empty-note">Nothing to send right now.</div>`;
-    return items.map(c=>{
-      const cat = catInfo(c.category);
-      const shortLabel = cat.label.replace(' Troops','').replace(' Cards','');
-      return `<div class="trade-item">
-        <span>${escHtml(c.name)}</span>
-        <div class="trade-item-right">
-          <span class="tag" style="background:${cat.hex}">${shortLabel}</span>
-          <button class="btn tiny" data-action="complete-trade" data-direction="${direction}" data-card="${escAttr(c.id)}">✓ Mark traded</button>
-        </div>
-      </div>`;
-    }).join("");
-  }
+function renderTradeView(){
+  const rows = computeDuplicates();
+  const catOpts = [`<option value="all">All categories</option>`]
+    .concat(CATEGORIES.map(c=>`<option value="${c.key}" ${tradeFilterCat===c.key?'selected':''}>${c.label}</option>`)).join("");
 
-  // Recent trade history between exactly this pair of accounts, most recent first.
-  const log = (DATA.tradeLog || []).filter(t =>
-    (t.from===tradeA && t.to===tradeB) || (t.from===tradeB && t.to===tradeA)
-  ).slice().reverse().slice(0, 15);
+  const boardHtml = !rows.length
+    ? `<div class="empty-note">No duplicates matching these filters right now.</div>`
+    : rows.map(row=>{
+        const cat = catInfo(row.card.category);
+        const otherAccounts = accountsMeta.list.filter(a=>a.name!==row.account);
+        const selectId = `recv-${row.account}-${row.card.id}`.replace(/[^a-zA-Z0-9-]/g,'');
+        return `
+        <div class="duptrade-row">
+          <span class="who">${escHtml(row.account)}</span>
+          <span class="tag" style="background:${cat.hex}">${cat.label.replace(' Troops','')}</span>
+          <span>has ${escHtml(row.card.name)}</span>
+          <span class="spare">×${row.spare} spare</span>
+          <div class="duptrade-right">
+            <select id="${selectId}" data-role="recipient-select">
+              <option value="">Send to…</option>
+              ${otherAccounts.map(a=>`<option value="${escAttr(a.name)}">${escHtml(a.name)}</option>`).join("")}
+            </select>
+            <button class="btn tiny" data-action="log-trade" data-from="${escAttr(row.account)}" data-card="${escAttr(row.card.id)}" data-select="${selectId}">✓ Log trade</button>
+          </div>
+        </div>`;
+      }).join("");
 
-  const logHtml = !log.length ? "" : `
-  <div class="panel-box" style="margin-top:16px;">
-    <h3 style="margin-bottom:10px;">Recent trades between ${escHtml(tradeA)} &amp; ${escHtml(tradeB)}</h3>
-    ${log.map(t=>{
-      const cat = catInfo((DATA.cards.find(c=>c.id===t.cardId)||{}).category) || {hex:'#888'};
-      return `<div class="trade-item">
-        <span>${escHtml(t.cardName)} — <span style="color:var(--ink-dim);">${escHtml(t.from)} → ${escHtml(t.to)}</span></span>
-        <div class="trade-item-right">
-          <span class="log-time">${timeAgo(t.ts)}</span>
-          <button class="btn tiny secondary" data-action="undo-trade" data-logid="${t.id}">Undo</button>
-        </div>
-      </div>`;
-    }).join("")}
-  </div>`;
+  const log = (tradeLog.entries||[]).slice().reverse().slice(0,50);
+  const logHtml = !log.length ? `<div class="empty-note">No trades logged yet.</div>` : log.map(t=>{
+    const card = roster.cards.find(c=>c.id===t.cardId);
+    const cat = card ? catInfo(card.category) : {hex:'#888'};
+    return `<div class="trade-item">
+      <span>${escHtml(t.cardName)} <span class="tag" style="background:${cat.hex};margin-left:6px;">${cat.label ? cat.label.replace(' Troops','') : ''}</span> — <span style="color:var(--ink-dim);">${escHtml(t.from)} → ${escHtml(t.to)}</span></span>
+      <div class="trade-item-right">
+        <span class="log-time">${timeAgo(t.ts)}</span>
+        <button class="btn tiny secondary" data-action="undo-trade" data-logid="${t.id}">Undo</button>
+      </div>
+    </div>`;
+  }).join("");
 
   return `
-  <div class="trade-select">
-    <select id="trade-a-select">${optsA}</select>
-    <span style="color:var(--ink-faint);">⇄</span>
-    <select id="trade-b-select">${optsB}</select>
+  <div class="panel-box" style="margin-bottom:14px;">
+    <p style="margin:0;">This is a <b>record</b>, not an in-game trade bot — it tracks trades you've already made face-to-face so everyone's binder count stays accurate and the history stays transparent.</p>
   </div>
-  <div class="trade-cols">
-    <div class="trade-col">
-      <h3>${escHtml(tradeA||'')} → ${escHtml(tradeB||'')}</h3>
-      ${list(aToB, "aToB")}
-    </div>
-    <div class="trade-col">
-      <h3>${escHtml(tradeB||'')} → ${escHtml(tradeA||'')}</h3>
-      ${list(bToA, "bToA")}
-    </div>
+  <div class="trade-filter-row">
+    <input type="text" id="trade-search" placeholder="Search a card…" value="${escAttr(tradeFilterQuery)}">
+    <select id="trade-cat-filter">${catOpts}</select>
+    <label><input type="checkbox" id="trade-needs-only" ${tradeFilterNeedsOnly?'checked':''} ${!settings.myAccount?'disabled':''}> Only show what I need</label>
   </div>
-  ${logHtml}`;
+  <div class="duptrade-list">${boardHtml}</div>
+  <div class="panel-box">
+    <h3 style="margin-bottom:10px;">Public trade history</h3>
+    ${logHtml}
+  </div>`;
 }
 
 function timeAgo(ts){
@@ -863,62 +1081,135 @@ function timeAgo(ts){
   return Math.floor(h/24)+"d ago";
 }
 
+async function logTrade(giver, receiver, cardId){
+  const card = roster.cards.find(c=>c.id===cardId);
+  if(!card || !giver || !receiver || giver===receiver) return;
+
+  let latestColl = collections;
+  try{
+    const res = await window.storage.get(K_COLLECTIONS, true);
+    if(res && res.value) latestColl = JSON.parse(res.value);
+  }catch(e){ /* fall back to local */ }
+
+  const giverCount = (latestColl[giver] && latestColl[giver][cardId]) || 0;
+  if(giverCount < 2){
+    collections = latestColl;
+    flashStatus("That duplicate isn't available anymore — someone traded it first.");
+    render();
+    return;
+  }
+  latestColl[giver][cardId] = giverCount - 1;
+  if(!latestColl[receiver]) latestColl[receiver] = {};
+  latestColl[receiver][cardId] = (latestColl[receiver][cardId]||0) + 1;
+  await setSharedRaw(K_COLLECTIONS, latestColl);
+  collections = latestColl;
+
+  tradeLog = await withFreshShared(K_TRADELOG, latest=>{
+    latest.entries = latest.entries || [];
+    latest.entries.push({
+      id: "t"+Date.now()+Math.random().toString(36).slice(2,7),
+      from: giver, to: receiver, cardId, cardName: card.name, ts: Date.now()
+    });
+    if(latest.entries.length > 500) latest.entries = latest.entries.slice(-500);
+  }, tradeLog);
+
+  flashStatus(`${card.name}: ${giver} → ${receiver} logged for everyone.`);
+  render();
+}
+
+async function undoTrade(logId){
+  let latestLog = tradeLog;
+  try{
+    const res = await window.storage.get(K_TRADELOG, true);
+    if(res && res.value) latestLog = JSON.parse(res.value);
+  }catch(e){}
+  const entry = (latestLog.entries||[]).find(t=>t.id===logId);
+  if(!entry) return;
+
+  collections = await withFreshShared(K_COLLECTIONS, latest=>{
+    if(!latest[entry.from]) latest[entry.from] = {};
+    latest[entry.from][entry.cardId] = (latest[entry.from][entry.cardId]||0) + 1;
+    if(latest[entry.to]) latest[entry.to][entry.cardId] = Math.max(0, (latest[entry.to][entry.cardId]||0) - 1);
+  }, collections);
+
+  latestLog.entries = latestLog.entries.filter(t=>t.id!==logId);
+  await setSharedRaw(K_TRADELOG, latestLog);
+  tradeLog = latestLog;
+
+  flashStatus("Trade undone for everyone.");
+  render();
+}
+
 function renderDataView(){
-  const exportBlob = JSON.stringify(DATA, null, 2);
+  const bundle = { roster, accounts: accountsMeta, collections, tradeLog };
+  const exportBlob = JSON.stringify(bundle, null, 2);
   return `
+  <div class="banner-warn">
+    <b>This gallery is shared.</b> Everyone with this link sees the same accounts, counts, and trade history. Locked (pre-established) accounts can't be removed by anyone. Unlocked accounts can only be renamed or removed by whoever is contributing as them.
+  </div>
   <div class="panel-box">
-    <h3>Export your data</h3>
-    <p>Back up your binder, or move it to another device.</p>
+    <h3>Export the whole gallery</h3>
+    <p>Back up everything currently shared — every account, every count, the full trade log.</p>
     <textarea readonly id="export-box">${escHtml(exportBlob)}</textarea>
     <div class="btn-row"><button class="btn secondary" data-action="copy-export">Copy to clipboard</button></div>
   </div>
   <div class="panel-box">
     <h3>Import data</h3>
-    <p>Replaces everything currently stored in the app.</p>
+    <p><b>This replaces the shared gallery for everyone</b> currently using this page — not just your own view. Use carefully.</p>
     <textarea id="import-box" placeholder="Paste exported JSON here…"></textarea>
     <div class="btn-row">
-      <button class="btn" data-action="import-full">Import & replace</button>
+      <button class="btn" data-action="import-full">Import &amp; replace for everyone</button>
     </div>
   </div>
   <div class="panel-box">
-    <h3>Quick bulk-set for "${escHtml(DATA.selectedAccount)}"</h3>
+    <h3>Protect accounts from your import</h3>
+    <p>Paste your real, pre-established account names (comma or newline separated). Each one is locked into the gallery permanently — visible to everyone, removable by no one.</p>
+    <textarea id="protect-box" placeholder="MainAccount, AltOne, AltTwo"></textarea>
+    <div class="btn-row"><button class="btn" data-action="protect-accounts">Lock these into the gallery</button></div>
+  </div>
+  ${canEditViewing() ? `
+  <div class="panel-box">
+    <h3>Quick bulk-set for "${escHtml(viewingAccount)}"</h3>
     <p>Format: <span class="mono">card-id:count</span>, comma-separated. IDs are in the Card List tab. Example: <span class="mono">barbarian:2, archer:1, golem:0</span></p>
     <textarea id="bulk-box" placeholder="barbarian:2, archer:1, hog-rider:3"></textarea>
-    <div class="btn-row"><button class="btn" data-action="bulk-set">Apply to ${escHtml(DATA.selectedAccount)}</button></div>
-  </div>
-  <div id="status-msg" class="status-msg"></div>
+    <div class="btn-row"><button class="btn" data-action="bulk-set">Apply to ${escHtml(viewingAccount)}</button></div>
+  </div>` : `
+  <div class="panel-box">
+    <p style="margin:0;">Bulk-set is only available while contributing to the account you're viewing.</p>
+  </div>`}
   <div class="panel-box">
     <p style="margin:0;"><b>Note on Supercell's export:</b> the village-data JSON export from Clash of Clans does not include Clash of Cards collection data — it's a one-time event tracked outside your normal village save. That's why import here uses this app's own format above, rather than a direct game file.</p>
   </div>`;
 }
 
 function renderEditorView(){
-  const rows = DATA.cards.map(c=>`
+  const editable = settings.mode==='contribute';
+  const rows = roster.cards.map(c=>`
     <div class="editor-row">
-      <input type="text" data-edit="name" data-card="${escAttr(c.id)}" value="${escAttr(c.name)}">
-      <select data-edit="category" data-card="${escAttr(c.id)}">
+      <input type="text" data-edit="name" data-card="${escAttr(c.id)}" value="${escAttr(c.name)}" ${editable?'':'disabled'}>
+      <select data-edit="category" data-card="${escAttr(c.id)}" ${editable?'':'disabled'}>
         ${CATEGORIES.map(cat=>`<option value="${cat.key}" ${cat.key===c.category?'selected':''}>${cat.label}</option>`).join("")}
       </select>
       <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-dim);">
-        <input type="checkbox" data-edit="excluded" data-card="${escAttr(c.id)}" ${c.excluded?'checked':''}> Excluded
+        <input type="checkbox" data-edit="excluded" data-card="${escAttr(c.id)}" ${c.excluded?'checked':''} ${editable?'':'disabled'}> Excluded
       </label>
-      <button class="btn danger" data-action="delete-card" data-card="${escAttr(c.id)}">Remove</button>
+      <button class="btn danger" data-action="delete-card" data-card="${escAttr(c.id)}" ${editable?'':'disabled'}>Remove</button>
     </div>`).join("");
 
   return `
   <div class="panel-box">
-    <h3>Card roster</h3>
-    <p>Matches the official droptable (19 Elixir / 13 Dark Elixir / 11 Builder Base / 17 Super Troop = 60 cards). Rename, recategorize, add, or exclude anything below if Supercell changes the set mid-event.</p>
+    <h3>Card roster (shared)</h3>
+    <p>Matches the official droptable (19 Elixir / 13 Dark Elixir / 11 Builder Base / 17 Super Troop = 60 cards). ${editable ? 'Rename, recategorize, add, or exclude anything below if Supercell changes the set mid-event.' : 'Switch to contribute mode to edit the roster.'}</p>
     <div class="editor-row" style="font-weight:700;color:var(--ink-faint);font-size:11px;text-transform:uppercase;">
       <div>Name</div><div>Category</div><div>Excluded?</div><div></div>
     </div>
     ${rows}
     <div class="btn-row">
-      <input type="text" id="new-card-name" placeholder="New card name…" style="flex:1;min-width:160px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;">
-      <select id="new-card-cat" style="background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;">
+      <input type="text" id="new-card-name" placeholder="New card name…" style="flex:1;min-width:160px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;" ${editable?'':'disabled'}>
+      <select id="new-card-cat" style="background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;" ${editable?'':'disabled'}>
         ${CATEGORIES.map(cat=>`<option value="${cat.key}">${cat.label}</option>`).join("")}
       </select>
-      <button class="btn" data-action="add-card">Add card</button>
+      <button class="btn" data-action="add-card" ${editable?'':'disabled'}>Add card</button>
     </div>
   </div>`;
 }
@@ -930,20 +1221,53 @@ function escAttr(s){ return escHtml(s); }
 function slugify(s){ return s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || ('card-'+Date.now()); }
 
 function attachHandlers(){
-  document.getElementById("app").addEventListener("click", onClick);
-  document.getElementById("app").addEventListener("change", onChange);
-  document.getElementById("app").addEventListener("keydown", onAccountNameKeyDown);
-  document.getElementById("app").addEventListener("focusout", onAccountNameFocusOut);
+  const app = document.getElementById("app");
+  app.addEventListener("click", onClick);
+  app.addEventListener("change", onChange);
+  app.addEventListener("keydown", onAccountNameKeyDown);
+  app.addEventListener("focusout", onAccountNameFocusOut);
 }
 
 function onAccountNameKeyDown(e){
-  if(!e.target || e.target.id!=="account-name-input") return;
-  if(e.key==="Enter"){ e.preventDefault(); finishAccountEdit(false); }
-  else if(e.key==="Escape"){ e.preventDefault(); finishAccountEdit(true); }
+  if(e.target && e.target.id==="account-name-input"){
+    if(e.key==="Enter"){ e.preventDefault(); finishAccountEdit(false); }
+    else if(e.key==="Escape"){ e.preventDefault(); finishAccountEdit(true); }
+  }
+  if(e.target && e.target.id==="contributor-name-input" && e.key==="Enter"){
+    e.preventDefault();
+    confirmContributor();
+  }
 }
 function onAccountNameFocusOut(e){
   if(!e.target || e.target.id!=="account-name-input") return;
   finishAccountEdit(false);
+}
+
+async function confirmContributor(){
+  const input = document.getElementById("contributor-name-input");
+  if(!input) return;
+  const name = input.value.trim();
+  if(!name) return;
+  const existing = accountsMeta.list.find(x=>x.name===name);
+  if(existing && existing.locked){
+    alert(`"${name}" is a protected, pre-established account. Pick a different name, or ask whoever set it up to unlock it.`);
+    return;
+  }
+  if(!existing){
+    accountsMeta = await withFreshShared(K_ACCOUNTS, latest=>{
+      latest.list = latest.list || [];
+      if(!latest.list.find(x=>x.name===name)) latest.list.push({name, locked:false});
+    }, accountsMeta);
+    collections = await withFreshShared(K_COLLECTIONS, latest=>{
+      if(!latest[name]) latest[name] = {};
+    }, collections);
+  }
+  settings.myAccount = name;
+  settings.mode = "contribute";
+  await setPersonalRaw(K_SETTINGS, settings);
+  viewingAccount = name;
+  becomingContributor = false;
+  render();
 }
 
 function onClick(e){
@@ -951,21 +1275,19 @@ function onClick(e){
   if(!el) return;
   const action = el.dataset.action;
 
+  if(action==="refresh-now"){ refreshFromServer(true); flashStatus("Synced."); return; }
+
   if(action==="set-view"){ currentView = el.dataset.view; render(); return; }
   if(action==="set-category"){ scrollToCategory(el.dataset.cat); return; }
 
-  if(action==="select-account"){ DATA.selectedAccount = el.dataset.account; render(); return; }
-  if(action==="add-account"){
-    const name = nextTempAccountName();
-    DATA.accounts.push(name);
-    DATA.collections[name] = {};
-    DATA.selectedAccount = name;
-    editingAccount = name;
-    saveData(DATA);
-    render();
-    focusAccountInput();
-    return;
-  }
+  if(action==="start-contributing"){ becomingContributor = true; render(); return; }
+  if(action==="cancel-contributor"){ becomingContributor = false; render(); return; }
+  if(action==="confirm-contributor"){ confirmContributor(); return; }
+  if(action==="stop-contributing"){ settings.mode = "view"; setPersonalRaw(K_SETTINGS, settings); render(); return; }
+
+  if(action==="replay-tutorial"){ startTutorial(); return; }
+
+  if(action==="select-account"){ viewingAccount = el.dataset.account; render(); return; }
   if(action==="edit-account-name"){
     e.stopPropagation();
     editingAccount = el.dataset.account;
@@ -976,62 +1298,44 @@ function onClick(e){
   if(action==="delete-account"){
     e.stopPropagation();
     const acc = el.dataset.account;
-    if(confirm(`Remove "${acc}" and its saved collection? This can't be undone.`)){
-      DATA.accounts = DATA.accounts.filter(a=>a!==acc);
-      delete DATA.collections[acc];
-      if(DATA.selectedAccount===acc) DATA.selectedAccount = DATA.accounts[0];
-      saveData(DATA);
-      render();
+    if(accountLocked(acc)) return;
+    if(confirm(`Remove "${acc}" and its collection from the shared gallery? This can't be undone.`)){
+      (async ()=>{
+        accountsMeta = await withFreshShared(K_ACCOUNTS, latest=>{
+          latest.list = latest.list.filter(x=>x.name!==acc);
+        }, accountsMeta);
+        collections = await withFreshShared(K_COLLECTIONS, latest=>{
+          delete latest[acc];
+        }, collections);
+        if(settings.myAccount===acc){
+          settings.myAccount = null;
+          settings.mode = "view";
+          await setPersonalRaw(K_SETTINGS, settings);
+        }
+        if(viewingAccount===acc) viewingAccount = accountsMeta.list[0] ? accountsMeta.list[0].name : null;
+        render();
+      })();
     }
     return;
   }
 
   if(action==="inc" || action==="dec"){
+    if(!canEditViewing()) return;
     const cardId = el.dataset.card;
-    const cur = getCount(DATA.selectedAccount, cardId);
-    setCount(DATA.selectedAccount, cardId, action==="inc" ? cur+1 : cur-1);
-    render();
+    bumpCount(viewingAccount, cardId, action==="inc" ? 1 : -1);
     return;
   }
 
-  if(action==="complete-trade"){
-    const direction = el.dataset.direction;
+  if(action==="log-trade"){
+    const from = el.dataset.from;
     const cardId = el.dataset.card;
-    const card = DATA.cards.find(c=>c.id===cardId);
-    if(!card || !tradeA || !tradeB) return;
-    const giver = direction==="aToB" ? tradeA : tradeB;
-    const receiver = direction==="aToB" ? tradeB : tradeA;
-
-    const giverCount = getCount(giver, cardId);
-    if(giverCount < 2){ flashStatus("That duplicate isn't available anymore — list may be out of date."); render(); return; }
-
-    setCount(giver, cardId, giverCount - 1);
-    setCount(receiver, cardId, getCount(receiver, cardId) + 1);
-
-    if(!DATA.tradeLog) DATA.tradeLog = [];
-    DATA.tradeLog.push({
-      id: "t" + Date.now() + Math.random().toString(36).slice(2,7),
-      from: giver, to: receiver, cardId, cardName: card.name, ts: Date.now()
-    });
-    if(DATA.tradeLog.length > 300) DATA.tradeLog = DATA.tradeLog.slice(-300);
-    saveData(DATA);
-    flashStatus(`${card.name}: ${giver} → ${receiver} logged.`);
-    render();
+    const select = document.getElementById(el.dataset.select);
+    const to = select ? select.value : "";
+    if(!to){ flashStatus("Pick who's receiving it first."); return; }
+    logTrade(from, to, cardId);
     return;
   }
-  if(action==="undo-trade"){
-    const logId = el.dataset.logid;
-    const entry = (DATA.tradeLog||[]).find(t=>t.id===logId);
-    if(!entry) return;
-    // reverse the swap
-    setCount(entry.from, entry.cardId, getCount(entry.from, entry.cardId) + 1);
-    setCount(entry.to, entry.cardId, Math.max(0, getCount(entry.to, entry.cardId) - 1));
-    DATA.tradeLog = DATA.tradeLog.filter(t=>t.id!==logId);
-    saveData(DATA);
-    flashStatus("Trade undone.");
-    render();
-    return;
-  }
+  if(action==="undo-trade"){ undoTrade(el.dataset.logid); return; }
 
   if(action==="copy-export"){
     const box = document.getElementById("export-box");
@@ -1042,84 +1346,255 @@ function onClick(e){
   if(action==="import-full"){
     const raw = document.getElementById("import-box").value.trim();
     if(!raw) return;
+    if(!confirm("This replaces the shared gallery for EVERYONE currently using this page. Continue?")) return;
     try{
       const parsed = JSON.parse(raw);
-      if(!parsed.cards || !parsed.accounts || !parsed.collections) throw new Error("shape");
-      DATA = parsed;
-      if(!DATA.selectedAccount || !DATA.accounts.includes(DATA.selectedAccount)) DATA.selectedAccount = DATA.accounts[0];
-      saveData(DATA);
-      currentView = "binder";
-      render();
+      if(!parsed.roster || !parsed.accounts || !parsed.collections) throw new Error("shape");
+      (async ()=>{
+        await setSharedRaw(K_ROSTER, parsed.roster);
+        await setSharedRaw(K_ACCOUNTS, parsed.accounts);
+        await setSharedRaw(K_COLLECTIONS, parsed.collections);
+        if(parsed.tradeLog) await setSharedRaw(K_TRADELOG, parsed.tradeLog);
+        roster = parsed.roster; accountsMeta = parsed.accounts; collections = parsed.collections;
+        tradeLog = parsed.tradeLog || {entries:[]};
+        if(!accountsMeta.list.find(x=>x.name===viewingAccount)) viewingAccount = accountsMeta.list[0] ? accountsMeta.list[0].name : null;
+        currentView = "binder";
+        render();
+      })();
     }catch(err){
       alert("That doesn't look like valid exported data from this app.");
     }
     return;
   }
+  if(action==="protect-accounts"){
+    const raw = document.getElementById("protect-box").value.trim();
+    if(!raw) return;
+    const names = raw.split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
+    if(!names.length) return;
+    (async ()=>{
+      accountsMeta = await withFreshShared(K_ACCOUNTS, latest=>{
+        latest.list = latest.list || [];
+        names.forEach(n=>{
+          const existing = latest.list.find(x=>x.name===n);
+          if(existing) existing.locked = true;
+          else latest.list.push({name:n, locked:true});
+        });
+      }, accountsMeta);
+      collections = await withFreshShared(K_COLLECTIONS, latest=>{
+        names.forEach(n=>{ if(!latest[n]) latest[n] = {}; });
+      }, collections);
+      flashStatus(`Locked ${names.length} account${names.length===1?'':'s'} into the gallery.`);
+      render();
+    })();
+    return;
+  }
   if(action==="bulk-set"){
+    if(!canEditViewing()) return;
     const raw = document.getElementById("bulk-box").value.trim();
     if(!raw) return;
     const pairs = raw.split(",").map(s=>s.trim()).filter(Boolean);
-    let applied = 0, skipped = [];
-    pairs.forEach(p=>{
-      const [id, val] = p.split(":").map(s=>s.trim());
-      const n = parseInt(val,10);
-      if(DATA.cards.find(c=>c.id===id) && !isNaN(n)){
-        setCount(DATA.selectedAccount, id, n);
-        applied++;
-      } else skipped.push(p);
-    });
-    flashStatus(`Applied ${applied} card${applied===1?'':'s'}.${skipped.length? ' Skipped: '+skipped.join(', ') : ''}`);
-    render();
+    (async ()=>{
+      let applied = 0, skipped = [];
+      const ops = [];
+      pairs.forEach(p=>{
+        const [id, val] = p.split(":").map(s=>s.trim());
+        const n = parseInt(val,10);
+        if(roster.cards.find(c=>c.id===id) && !isNaN(n)){ ops.push([id,n]); applied++; }
+        else skipped.push(p);
+      });
+      collections = await withFreshShared(K_COLLECTIONS, latest=>{
+        if(!latest[viewingAccount]) latest[viewingAccount] = {};
+        ops.forEach(([id,n])=>{ latest[viewingAccount][id] = Math.max(0,n); });
+      }, collections);
+      flashStatus(`Applied ${applied} card${applied===1?'':'s'}.${skipped.length? ' Skipped: '+skipped.join(', ') : ''}`);
+      render();
+    })();
     return;
   }
 
   if(action==="delete-card"){
+    if(settings.mode!=='contribute') return;
     const id = el.dataset.card;
-    if(confirm("Remove this card from the roster? Collected counts for it will be lost across all accounts.")){
-      DATA.cards = DATA.cards.filter(c=>c.id!==id);
-      Object.values(DATA.collections).forEach(col=>{ delete col[id]; });
-      saveData(DATA);
-      render();
+    if(confirm("Remove this card from the shared roster? Collected counts for it will be lost across every account.")){
+      (async ()=>{
+        roster = await withFreshShared(K_ROSTER, latest=>{
+          latest.cards = latest.cards.filter(c=>c.id!==id);
+        }, roster);
+        collections = await withFreshShared(K_COLLECTIONS, latest=>{
+          Object.values(latest).forEach(col=>{ delete col[id]; });
+        }, collections);
+        render();
+      })();
     }
     return;
   }
   if(action==="add-card"){
+    if(settings.mode!=='contribute') return;
     const nameInput = document.getElementById("new-card-name");
     const catSelect = document.getElementById("new-card-cat");
     const name = nameInput.value.trim();
     if(!name) return;
-    let id = slugify(name);
-    let suffix = 1;
-    while(DATA.cards.find(c=>c.id===id)){ id = slugify(name)+'-'+(++suffix); }
-    DATA.cards.push({id, name, category: catSelect.value, excluded:false});
-    saveData(DATA);
-    render();
+    (async ()=>{
+      roster = await withFreshShared(K_ROSTER, latest=>{
+        let id = slugify(name), suffix = 1;
+        while(latest.cards.find(c=>c.id===id)){ id = slugify(name)+'-'+(++suffix); }
+        latest.cards.push({id, name, category: catSelect.value, excluded:false});
+      }, roster);
+      render();
+    })();
     return;
   }
 }
 
 function onChange(e){
   const t = e.target;
-  if(t.id==="trade-a-select"){ tradeA = t.value; render(); return; }
-  if(t.id==="trade-b-select"){ tradeB = t.value; render(); return; }
+
+  if(t.id==="trade-search"){ tradeFilterQuery = t.value; render(); return; }
+  if(t.id==="trade-cat-filter"){ tradeFilterCat = t.value; render(); return; }
+  if(t.id==="trade-needs-only"){ tradeFilterNeedsOnly = t.checked; render(); return; }
 
   if(t.dataset && t.dataset.edit){
+    if(settings.mode!=='contribute') return;
     const cardId = t.dataset.card;
-    const card = DATA.cards.find(c=>c.id===cardId);
-    if(!card) return;
-    if(t.dataset.edit==="name") card.name = t.value;
-    if(t.dataset.edit==="category") card.category = t.value;
-    if(t.dataset.edit==="excluded") card.excluded = t.checked;
-    saveData(DATA);
-    // no full re-render needed for text input to avoid losing focus; re-render only for select/checkbox
-    if(t.dataset.edit!=="name") render();
+    const editType = t.dataset.edit;
+    const value = editType==='excluded' ? t.checked : t.value;
+    (async ()=>{
+      roster = await withFreshShared(K_ROSTER, latest=>{
+        const card = latest.cards.find(c=>c.id===cardId);
+        if(!card) return;
+        if(editType==="name") card.name = value;
+        if(editType==="category") card.category = value;
+        if(editType==="excluded") card.excluded = value;
+      }, roster);
+      if(editType!=="name") render();
+    })();
   }
+}
+
+/* ---------------- Onboarding tutorial ---------------- */
+let tutorialActive = false;
+let tutorialStep = 0;
+const TUTORIAL_STEPS = [
+  {
+    view: "binder",
+    getTarget: () => document.querySelector(".binder-page"),
+    title: "Match your binder to your game",
+    text: "Start here at the bottom. Go card by card and tap + for every duplicate you actually own in-game, so this binder mirrors your real collection."
+  },
+  {
+    view: null,
+    getTarget: () => document.querySelector('[data-action="start-contributing"]') || document.querySelector(".chip.active .chip-pencil"),
+    title: "Add yourself to the gallery",
+    text: "Tap \"Contribute my account\" and enter your real in-game account name — that's what everyone else will see you as in the gallery and trade history."
+  },
+  {
+    view: "data",
+    getTarget: () => document.querySelector('[data-action="copy-export"]'),
+    title: "Back up the gallery",
+    text: "Head to Import / Export and hit \"Copy to clipboard\" any time you want a snapshot of the whole shared gallery saved somewhere safe."
+  }
+];
+
+function startTutorial(){
+  tutorialActive = true;
+  tutorialStep = 0;
+  showTutorialStep();
+}
+function showTutorialStep(){
+  const step = TUTORIAL_STEPS[tutorialStep];
+  if(step.view && step.view !== currentView){ currentView = step.view; render(); }
+  requestAnimationFrame(()=>{
+    const el = TUTORIAL_STEPS[tutorialStep].getTarget();
+    if(el && el.scrollIntoView){
+      el.scrollIntoView({behavior:"smooth", block:"center"});
+      setTimeout(renderTutorialOverlay, 260);
+    } else {
+      renderTutorialOverlay();
+    }
+  });
+}
+function advanceTutorial(){
+  if(tutorialStep < TUTORIAL_STEPS.length-1){ tutorialStep++; showTutorialStep(); }
+  else { endTutorial(); }
+}
+function endTutorial(){
+  tutorialActive = false;
+  renderTutorialOverlay();
+  markTutorialSeen();
+}
+async function markTutorialSeen(){
+  try{ await window.storage.set(TUTORIAL_KEY, "1", false); }catch(e){}
+}
+function renderTutorialOverlay(){
+  const root = document.getElementById("tutorial-root");
+  if(!root) return;
+  if(!tutorialActive){ root.style.display = "none"; root.innerHTML = ""; return; }
+
+  const step = TUTORIAL_STEPS[tutorialStep];
+  const targetEl = step.getTarget();
+  if(!targetEl){ requestAnimationFrame(renderTutorialOverlay); return; }
+  root.style.display = "block";
+
+  const pad = 8;
+  const r = targetEl.getBoundingClientRect();
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const top = Math.max(0, r.top - pad);
+  const left = Math.max(0, r.left - pad);
+  const w = Math.min(vw, r.width + pad*2);
+  const h = Math.min(vh, r.height + pad*2);
+
+  const masks = [
+    {t:0, l:0, w:vw, h:top},
+    {t:top+h, l:0, w:vw, h:Math.max(0, vh-(top+h))},
+    {t:top, l:0, w:left, h:h},
+    {t:top, l:left+w, w:Math.max(0, vw-(left+w)), h:h}
+  ].map(m=>`<div class="tutorial-mask" style="top:${m.t}px;left:${m.l}px;width:${m.w}px;height:${m.h}px;"></div>`).join("");
+
+  let cardTop = top + h + 14;
+  if(cardTop + 190 > vh) cardTop = Math.max(10, top - 14 - 170);
+  let cardLeft = Math.min(Math.max(10, left), vw - 320);
+
+  root.innerHTML = `
+    ${masks}
+    <div class="tutorial-ring" style="top:${top}px;left:${left}px;width:${w}px;height:${h}px;"></div>
+    <div class="tutorial-card" style="top:${cardTop}px;left:${cardLeft}px;">
+      <div class="tutorial-progress">Step ${tutorialStep+1} of ${TUTORIAL_STEPS.length}</div>
+      <h4>${escHtml(step.title)}</h4>
+      <p>${escHtml(step.text)}</p>
+      <div class="tutorial-actions">
+        <button class="tutorial-btn skip" data-taction="skip">Skip</button>
+        <button class="tutorial-btn next" data-taction="next">${tutorialStep===TUTORIAL_STEPS.length-1?'Done':'Next'}</button>
+      </div>
+    </div>`;
+}
+function attachTutorialHandlers(){
+  const root = document.getElementById("tutorial-root");
+  root.addEventListener("click", e=>{
+    const btn = e.target.closest("[data-taction]");
+    if(!btn) return;
+    if(btn.dataset.taction==="next") advanceTutorial();
+    else if(btn.dataset.taction==="skip") endTutorial();
+  });
+  window.addEventListener("resize", ()=>{ if(tutorialActive) renderTutorialOverlay(); });
+  window.addEventListener("scroll", ()=>{ if(tutorialActive) renderTutorialOverlay(); }, true);
 }
 
 /* ---------------- Boot ---------------- */
 (async function boot(){
-  DATA = await loadData();
+  await loadAll();
+  lastSyncTs = Date.now();
   render();
+  attachTutorialHandlers();
+
+  pollTimer = setInterval(()=>refreshFromServer(false), 7000);
+  window.addEventListener("focus", ()=>refreshFromServer(true));
+
+  let seenTutorial = false;
+  try{
+    const res = await window.storage.get(TUTORIAL_KEY, false);
+    seenTutorial = !!(res && res.value === "1");
+  }catch(e){ seenTutorial = false; }
+  if(!seenTutorial) startTutorial();
 })();
 </script>
 </body>
