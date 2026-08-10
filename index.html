@@ -577,15 +577,19 @@ textarea{
   .view-tab.active{padding-top:10px;}
 
   .overall-bar{
-    gap:10px;
+    gap:8px 10px;
     padding:11px 12px;
     margin-bottom:12px;
     align-items:center;
+    flex-wrap:wrap;
   }
   .overall-bar .ring{width:48px;height:48px;font-size:11px;}
   .overall-bar .ring::before{inset:4px;}
-  .overall-bar .txt{font-size:11.5px;line-height:1.35;}
-  .overall-bar .readonly-tag{font-size:9px;padding:3px 7px;}
+  .overall-bar .txt{font-size:11.5px;line-height:1.35;flex:1 1 150px;min-width:0;}
+  .overall-bar .readonly-tag{font-size:9px;padding:3px 7px;white-space:normal;max-width:100%;}
+  .overall-bar .last-updated-tag{font-size:9px;padding:3px 7px;margin-left:auto;white-space:normal;max-width:100%;}
+  .overall-bar .readonly-tag,
+  .overall-bar .last-updated-tag{flex:none;}
 
   .cat-row{gap:7px;margin-bottom:12px;}
   .cat-card{flex:1 1 calc(50% - 4px);min-width:0;padding:10px 11px;border-radius:11px;}
@@ -632,9 +636,10 @@ textarea{
   .trade-item-left{flex:1 1 100%;}
   .trade-item-right{flex:1 1 100%;justify-content:flex-end;}
 
-  .trade-hero{padding:12px 14px;gap:10px;}
+  .trade-hero{padding:12px 14px;gap:10px;flex-wrap:wrap;}
   .trade-hero .avatar-circle{width:38px;height:38px;font-size:16px;}
   .trade-hero .name{font-size:16px;}
+  .trade-hero .updated{font-size:9.5px;white-space:normal;text-align:left;margin-left:0;flex-basis:100%;}
   .partner-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;}
   .partner-card{padding:9px 26px 9px 10px;gap:8px;}
   .partner-card .avatar-circle{width:32px;height:32px;font-size:13px;}
