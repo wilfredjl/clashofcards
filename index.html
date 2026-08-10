@@ -453,7 +453,7 @@ const firebaseConfig = {
 // Admin identity for managing locked/pre-established accounts.
 // Replace this once with your Firebase Auth UID.
 // The UID is shown in Import / Export when you are not yet configured.
-const ADMIN_UID = "QscorS2HZsO7C0Iw7PTSI3sgW0A2";
+const ADMIN_UID = "M42UNWObt9ZpeK5NgjKnv3VULnJ2";
 
 const fbApp = initializeApp(firebaseConfig);
 const auth  = getAuth(fbApp);
@@ -1344,12 +1344,6 @@ function renderDataView(){
 ` : `
   <div class="panel-box">
     <h3>🔐 Admin setup</h3>
-    <p>To enable locked-account editing on this browser, set <span class="mono">ADMIN_UID</span> in the HTML to your Firebase Auth UID.</p>
-    <p style="margin-top:8px;color:var(--ink-faint);font-size:12px;">Current anonymous Auth UID:</p>
-    <div class="mono" style="word-break:break-all;padding:9px;background:var(--panel);border:1px solid var(--line);border-radius:8px;">${escHtml(currentUid || "Not signed in")}</div>
-    <div class="btn-row" style="margin-top:9px;">
-      <button class="btn secondary" data-action="copy-admin-uid">Copy UID</button>
-    </div>
     <p style="margin-top:9px;color:var(--ink-faint);font-size:11.5px;">After adding this UID to <span class="mono">ADMIN_UID</span> and allowing it in your Firestore rules, reload the page and this panel will become the admin editor.</p>
   </div>`;
 
