@@ -1864,22 +1864,28 @@ function onChange(e){
 }
 const TUTORIAL_STEPS = [
   {
-    view: "binder",
-    getTarget: () => document.querySelector(".binder-page"),
-    title: "Match your binder to your game",
-    text: "Start here at the bottom. Go card by card and tap + for every duplicate you actually own in-game, so this binder mirrors your real collection."
-  },
-  {
     view: null,
     getTarget: () => document.querySelector('[data-action="start-contributing"]') || document.querySelector(".chip.active .chip-pencil"),
-    title: "Add yourself to the gallery",
-    text: "Tap \"Contribute my account\" and enter your real in-game account name — that's what everyone else will see you as in the gallery and trade history."
+    title: "Step 1 — Create your account",
+    text: "Tap \"+ Add my account\" and enter your real in-game account name. This creates your account and names it in one go — that's what everyone else will see you as across the gallery, matrix, and trade finder. Already added yourself? Use the ✎ pencil on your account chip to rename it any time."
   },
   {
-    view: "data",
-    getTarget: () => document.querySelector('[data-action="copy-export"]'),
-    title: "Back up the gallery",
-    text: "Head to Import / Export and hit \"Copy to clipboard\" any time you want a snapshot of the whole shared gallery saved somewhere safe."
+    view: "binder",
+    getTarget: () => document.querySelector(".binder-page"),
+    title: "Step 2 — Fill up your binder",
+    text: "Go card by card and tap + for every duplicate you actually own in-game, so this binder matches your real collection exactly."
+  },
+  {
+    view: "matrix",
+    getTarget: () => document.querySelector(".matrix-wrap"),
+    title: "Step 3 — Check the Collection Matrix",
+    text: "Head to Collection Matrix for a wide view of everyone's progress at a glance — every account, every card, side by side."
+  },
+  {
+    view: "trade",
+    getTarget: () => document.querySelector(".trade-hero") || document.querySelector(".partner-grid") || document.querySelector("#view-trade .panel-box") || document.querySelector("#view-trade"),
+    title: "Step 4 — Find a trade in Trade Finder",
+    text: "Trade Finder automatically matches your duplicates against what everyone else needs. Once a trade is offered and accepted here, remember to also make the trade in-game — keeping both in sync is what keeps the whole gallery accurate."
   }
 ];
 
