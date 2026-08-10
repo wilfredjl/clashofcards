@@ -141,6 +141,14 @@ header.app-head::before{
   background:linear-gradient(135deg,var(--gold),#c9922f);
   color:#241a05;border-color:transparent;
 }
+/* Accounts flying a clan badge other than the main clan (AP) are muted + orange-tinted
+   so the main clan's roster reads clearly at a glance. Selecting one still overrides this. */
+.chip.chip-other-clan:not(.active){
+  opacity:.62;border-color:var(--super);color:var(--ink-faint);
+  background:linear-gradient(135deg, color-mix(in srgb, var(--super) 12%, var(--panel)), var(--panel));
+}
+.chip.chip-other-clan:not(.active):hover{opacity:1;border-color:var(--gold);color:var(--ink);}
+.chip.chip-other-clan:not(.active) .chip-badge-tag{color:var(--super);}
 .chip.add{background:transparent;border-style:dashed;color:var(--ink-faint);}
 .chip.add:hover{color:var(--gold);border-color:var(--gold);}
 .chip-x{margin-left:8px;opacity:.55;font-weight:400;}
@@ -1385,8 +1393,9 @@ function renderAccountBar(){
     }
     const canManage = isAdmin() || (!a.locked && a.ownerUid === currentUid);
     const clanKey = clanOf(a);
+    const otherClan = clanKey !== "AP";
     return `
-    <button class="chip ${a.slug===viewingAccount?'active':''}" data-action="select-account" data-account="${escAttr(a.slug)}">
+    <button class="chip ${a.slug===viewingAccount?'active':''} ${otherClan?'chip-other-clan':''}" data-action="select-account" data-account="${escAttr(a.slug)}">
       <span class="chip-badge" ${canManage?`data-action="cycle-clan-badge" data-account="${escAttr(a.slug)}"`:''} title="${canManage?`Clan: ${clanKey} — tap to switch`:`Clan: ${clanKey}`}">
         <span class="chip-badge-tag">(${clanKey})</span>
         <img src="${CLAN_BADGES[clanKey]}" alt="${clanKey}">
