@@ -179,8 +179,12 @@ header.app-head::before{
 .overall-bar .txt{font-size:13px;color:var(--ink-dim);}
 .overall-bar .txt b{color:var(--ink);}
 .overall-bar .readonly-tag{
-  margin-left:auto;font-size:11px;color:var(--ink-faint);border:1px solid var(--line);
+  font-size:11px;color:var(--ink-faint);border:1px solid var(--line);
   padding:4px 10px;border-radius:999px;white-space:nowrap;
+}
+.overall-bar .last-updated-tag{
+  margin-left:auto;font-size:11px;color:var(--ink-faint);border:1px solid var(--line);
+  padding:4px 10px;border-radius:999px;white-space:nowrap;font-family:'JetBrains Mono',monospace;
 }
 
 /* ---------- Binder grid (ring holes) ---------- */
@@ -324,6 +328,7 @@ table.matrix td.cell{font-family:'JetBrains Mono',monospace;}
 .trade-hero .info{position:relative;z-index:1;min-width:0;}
 .trade-hero .eyebrow{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-faint);font-weight:700;}
 .trade-hero .name{font-family:'Bungee',cursive;font-size:18px;color:var(--ink);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.trade-hero .updated{position:relative;z-index:1;margin-left:auto;font-size:11px;color:var(--ink-faint);font-family:'JetBrains Mono',monospace;text-align:right;white-space:nowrap;}
 
 /* ---------- Partner picker ---------- */
 .partner-picker-label{font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:var(--ink-faint);font-weight:700;margin:0 0 10px;}
@@ -718,7 +723,8 @@ const SCHEMA_VERSION = 2;
 /* ---------------- State ---------------- */
 let roster = { cards: DEFAULT_CARDS.map(c=>({...c})), schemaVersion: SCHEMA_VERSION }; // { cards:[...], schemaVersion }
 let accountsMeta = { list: [] };  // { list:[{slug, name, locked, ownerUid}] }
-let collections = {};             // { slug: { cardId: count } }
+let collections = {};             // { slug: { cardId: count, _updatedAt: Timestamp } }
+let collectionMeta = {};          // { slug: millis } — last time that collection was written to, for "Last updated" labels
 let tradeLog = { entries: [] };   // { entries:[{id, fromSlug, toSlug, fromName, toName, cardId, cardName, ts}] }
 let settings = { myAccount: null, myAccounts: [] }; // derived locally from accountsMeta + currentUid
 
@@ -749,6 +755,11 @@ function timeAgo(ts){
 }
 function swapKey(from,to,category){ return `${from}::${to}::${category}`; }
 function avatarInitial(name){ const s = String(name||"?").trim(); return s ? s[0].toUpperCase() : "?"; }
+function lastUpdatedText(slug){
+  const ms = collectionMeta[slug];
+  if(!ms) return "Not updated yet";
+  return "Last updated " + timeAgo(ms);
+}
 
 /* ---------------- Derived data ---------------- */
 function activeCards(){ return roster.cards.filter(c=>!c.excluded); }
@@ -813,7 +824,7 @@ async function bumpCount(slug, cardId, delta){
       const snap = await tx.get(ref);
       const data = snap.exists() ? snap.data() : {};
       const next = Math.max(0, (data[cardId]||0) + delta);
-      tx.set(ref, { [cardId]: next }, { merge:true });
+      tx.set(ref, { [cardId]: next, _updatedAt: serverTimestamp() }, { merge:true });
     });
   }catch(e){
     console.error("bumpCount failed", e);
@@ -822,7 +833,7 @@ async function bumpCount(slug, cardId, delta){
 }
 
 async function bulkSetCollection(slug, pairs){
-  const patch = {};
+  const patch = { _updatedAt: serverTimestamp() };
   pairs.forEach(([id,n])=>{ patch[id] = Math.max(0,n); });
   try{
     await setDoc(doc(db,"collections",slug), patch, { merge:true });
@@ -907,8 +918,8 @@ async function logSwapTrade(aSlug, bSlug, aGiveCardId, bGiveCardId){
       flashStatus("One of those duplicates isn't available anymore — someone traded it first.");
       return;
     }
-    await updateDoc(doc(db,"collections",aSlug), { [aGiveCardId]: increment(-1), [bGiveCardId]: increment(1) });
-    await updateDoc(doc(db,"collections",bSlug), { [bGiveCardId]: increment(-1), [aGiveCardId]: increment(1) });
+    await updateDoc(doc(db,"collections",aSlug), { [aGiveCardId]: increment(-1), [bGiveCardId]: increment(1), _updatedAt: serverTimestamp() });
+    await updateDoc(doc(db,"collections",bSlug), { [bGiveCardId]: increment(-1), [aGiveCardId]: increment(1), _updatedAt: serverTimestamp() });
     await addDoc(tradelogCol, {
       aSlug, bSlug, aName: accName(aSlug), bName: accName(bSlug),
       aGivesCardId: aGiveCardId, aGivesCardName: aGiveCard.name,
@@ -928,12 +939,12 @@ async function undoTrade(logId){
   try{
     if(entry.aGivesCardId){
       // swap-format entry: reverse both sides of the exchange
-      await updateDoc(doc(db,"collections",entry.aSlug), { [entry.aGivesCardId]: increment(1), [entry.bGivesCardId]: increment(-1) });
-      await updateDoc(doc(db,"collections",entry.bSlug), { [entry.bGivesCardId]: increment(1), [entry.aGivesCardId]: increment(-1) });
+      await updateDoc(doc(db,"collections",entry.aSlug), { [entry.aGivesCardId]: increment(1), [entry.bGivesCardId]: increment(-1), _updatedAt: serverTimestamp() });
+      await updateDoc(doc(db,"collections",entry.bSlug), { [entry.bGivesCardId]: increment(1), [entry.aGivesCardId]: increment(-1), _updatedAt: serverTimestamp() });
     } else {
       // legacy single-direction entry from an earlier version of the tracker
-      await updateDoc(doc(db,"collections",entry.fromSlug), { [entry.cardId]: increment(1) });
-      await updateDoc(doc(db,"collections",entry.toSlug), { [entry.cardId]: increment(-1) });
+      await updateDoc(doc(db,"collections",entry.fromSlug), { [entry.cardId]: increment(1), _updatedAt: serverTimestamp() });
+      await updateDoc(doc(db,"collections",entry.toSlug), { [entry.cardId]: increment(-1), _updatedAt: serverTimestamp() });
     }
     await deleteDoc(doc(db,"tradelog",logId));
     flashStatus("Trade undone for everyone.");
@@ -980,8 +991,16 @@ function setupListeners(){
 
   onSnapshot(collectionsCol, (snap)=>{
     const next = {};
-    snap.docs.forEach(d=>{ next[d.id] = d.data(); });
+    const nextMeta = {};
+    snap.docs.forEach(d=>{
+      const data = d.data();
+      next[d.id] = data;
+      if(data && data._updatedAt && typeof data._updatedAt.toMillis === "function"){
+        nextMeta[d.id] = data._updatedAt.toMillis();
+      }
+    });
     collections = next;
+    collectionMeta = nextMeta;
     readyFlags.collections = true;
     maybeRender();
   });
@@ -1200,6 +1219,7 @@ function renderBinderView(){
   <div class="overall-bar" style="--pct:${pct}">
     <div class="ring"><span>${pct}%</span></div>
     <div class="txt"><b>${escHtml(accName(acct))}</b> has collected <b>${ownedTotal}</b> of <b>${all.length}</b> tradeable cards.</div>
+    <span class="last-updated-tag" title="Reflects the last time a card count changed for this account">${escHtml(lastUpdatedText(acct))}</span>
     ${!editable ? `<span class="readonly-tag">Read-only${accountLocked(acct)?' · pre-established':''}</span>` : ''}
   </div>
   <div class="cat-row">${catCards}</div>
@@ -1362,14 +1382,15 @@ function renderMatrixView(){
   });
   return `
   <div class="panel-box" style="margin-bottom:14px;">
-    <p style="margin:0;">Every account stored in the binder <b style="color:var(--gold)">Gold</b> means a duplicate, ready to trade.</p>
+    <p style="margin:0;">Every account in the gallery, every card. <b style="color:var(--gold)">Gold</b> means a duplicate, ready to trade.</p>
   </div>
   <div class="matrix-wrap">
     <table class="matrix">
-      <thead><tr><th class="corner">Card</th>${accts.map(a=>`<th>${escHtml(a.name)}</th>`).join("")}</tr></thead>
+      <thead><tr><th class="corner">Card</th>${accts.map(a=>`<th title="${escAttr(lastUpdatedText(a.slug))}">${escHtml(a.name)}</th>`).join("")}</tr></thead>
       <tbody>${rows}</tbody>
     </table>
-  </div>`;
+  </div>
+  <p style="margin:10px 2px 0;font-size:11px;color:var(--ink-faint);">Hover an account name for when its collection was last updated.</p>`;
 }
 
 /* ---------------- Trade Finder: same-category swaps between the selected account and a partner ---------------- */
@@ -1426,12 +1447,13 @@ function renderTradeView(){
       <div class="eyebrow">Trading as</div>
       <div class="name">${escHtml(accName(acct))}</div>
     </div>
+    <div class="updated" title="Keep this fresh by tapping + / − in the Binder, or Trade offered / Trade accepted here">${escHtml(lastUpdatedText(acct))}</div>
   </div>`;
 
   // Partner picker — a proper "choose an opponent" gallery instead of a bare row of chips.
   let partnerPickerHtml;
   if(!partners.length){
-    partnerPickerHtml = `<div class="empty-note">Nobody has a duplicate ${escHtml(accName(acct))} needs while also needing one of ${escHtml(accName(acct))}'s duplicates in the same category — check back once more cards are collected.</div>`;
+    partnerPickerHtml = `<div class="empty-note">Nobody has a duplicate ${escHtml(accName(acct))} needs while also needing one of ${escHtml(accName(acct))}'s duplicates in the same category. Come back later</div>`;
   } else {
     partnerPickerHtml = `
     <div class="partner-picker-label">Choose someone to trade with</div>
@@ -1913,8 +1935,8 @@ const TUTORIAL_STEPS = [
   {
     view: "trade",
     getTarget: () => document.querySelector(".trade-hero") || document.querySelector(".partner-grid") || document.querySelector("#view-trade .panel-box") || document.querySelector("#view-trade"),
-    title: "Step 4 — Find a trade in Trade Finder",
-    text: "Trade Finder automatically matches your duplicates against what everyone else needs. Once a trade is offered and accepted here, remember to also make the trade in-game — keeping both in sync is what keeps the whole gallery accurate."
+    title: "Step 4 — Let Trade Finder do the matching",
+    text: "This is the best part. Trade Finder automatically matches your duplicates against what everyone else needs — no more scrolling everyone's binder by hand. When you make the trade in-game, come back and click \"Trade offered\", then once it actually goes through, click \"✓ Trade accepted\". This keeps everyone's collection accurate, since a stale count can make Trade Finder suggest a card that's no longer spare."
   }
 ];
 
