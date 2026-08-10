@@ -303,36 +303,112 @@ table.matrix td.cell{font-family:'JetBrains Mono',monospace;}
 }
 .trade-filter-row label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-dim);white-space:nowrap;}
 
-/* ---------- Trade partner picker ---------- */
-.trade-partner-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
-.trade-partner-row .you-label{font-weight:800;color:var(--gold);font-size:13.5px;}
 .trade-arrow{color:var(--gold);font-size:17px;line-height:1;}
 
-/* ---------- Swap sections (per-category give/get) ---------- */
-.swap-section{
-  background:var(--bg-elevated);border:1px solid var(--line);border-radius:14px;
-  padding:16px;margin-bottom:14px;
+/* ---------- "You" hero ---------- */
+.trade-hero{
+  display:flex;align-items:center;gap:14px;padding:15px 18px;border-radius:16px;margin-bottom:18px;
+  background:linear-gradient(135deg,var(--panel),var(--bg-elevated));border:1px solid var(--line);
+  position:relative;overflow:hidden;
 }
-.swap-section h4{
-  margin:0 0 14px;font-size:13.5px;font-weight:700;color:var(--ink);
-  display:flex;align-items:center;gap:8px;
+.trade-hero::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 12% 25%, var(--gold-glow), transparent 60%);
 }
+.trade-hero .avatar-circle{
+  position:relative;z-index:1;width:44px;height:44px;border-radius:50%;flex:none;
+  display:flex;align-items:center;justify-content:center;font-family:'Luckiest Guy',cursive;
+  font-size:18px;background:linear-gradient(135deg,var(--gold),#c9922f);color:#241a05;
+  box-shadow:0 0 0 3px var(--gold-glow);
+}
+.trade-hero .info{position:relative;z-index:1;min-width:0;}
+.trade-hero .eyebrow{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-faint);font-weight:700;}
+.trade-hero .name{font-family:'Bungee',cursive;font-size:18px;color:var(--ink);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ---------- Partner picker ---------- */
+.partner-picker-label{font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:var(--ink-faint);font-weight:700;margin:0 0 10px;}
+.partner-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:20px;}
+.partner-card{
+  position:relative;display:flex;align-items:center;gap:10px;padding:11px 30px 11px 12px;
+  border-radius:14px;border:1.5px solid var(--line);background:var(--panel);
+  cursor:pointer;transition:.15s;text-align:left;font-family:inherit;width:100%;
+}
+.partner-card:hover{border-color:var(--gold);transform:translateY(-1px);}
+.partner-card .avatar-circle{
+  width:36px;height:36px;font-size:14px;flex:none;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-family:'Luckiest Guy',cursive;
+  background:var(--slot);color:var(--ink-dim);
+}
+.partner-card .meta{min-width:0;}
+.partner-card .pname{font-weight:700;font-size:13.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.partner-card .pcount{font-size:10.5px;color:var(--ink-faint);margin-top:2px;}
+.partner-card.active{
+  border-color:var(--gold);
+  background:linear-gradient(135deg, color-mix(in srgb, var(--gold) 18%, var(--panel)), var(--panel));
+  box-shadow:0 0 0 3px var(--gold-glow);
+}
+.partner-card.active .avatar-circle{background:linear-gradient(135deg,var(--gold),#c9922f);color:#241a05;}
+.partner-card.active .pcount{color:var(--gold);font-weight:600;}
+.partner-check{
+  position:absolute;top:9px;right:9px;width:18px;height:18px;border-radius:50%;
+  background:var(--gold);color:#241a05;font-size:11px;font-weight:800;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+
+.trade-vs-banner{
+  display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 18px;
+  padding:11px;border-radius:12px;background:var(--bg-elevated);border:1px solid var(--line);
+}
+.trade-vs-banner .side{font-weight:700;font-size:14px;color:var(--ink-dim);}
+.trade-vs-banner .side.you{color:var(--gold);}
+.trade-vs-banner .vs-icon{
+  width:28px;height:28px;border-radius:50%;background:var(--panel);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:14px;flex:none;
+}
+
+/* ---------- Trade tickets (per-category swap) ---------- */
 .swap-cat-dot{width:10px;height:10px;border-radius:3px;flex:none;}
-.swap-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
-.swap-side{flex:1 1 200px;min-width:180px;}
-.swap-side label{
-  display:block;font-size:10px;text-transform:uppercase;letter-spacing:.6px;
-  color:var(--ink-faint);margin-bottom:5px;font-weight:700;
+.trade-ticket{background:var(--bg-elevated);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;}
+.ticket-head{
+  margin:0 0 14px;font-size:11.5px;font-weight:700;color:var(--ink-dim);
+  display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:.6px;
 }
-.swap-side select{
-  width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line);
-  border-radius:9px;padding:9px 10px;font-family:inherit;font-size:13px;
+.ticket-body{display:flex;align-items:stretch;gap:10px;}
+.offer-col{
+  flex:1 1 0;min-width:0;background:var(--panel);border:1.5px solid var(--line);border-radius:13px;
+  padding:12px;display:flex;flex-direction:column;gap:9px;
 }
-.swap-locked{
-  width:100%;background:var(--panel);color:var(--gold);border:1px solid var(--gold);
-  border-radius:9px;padding:9px 10px;font-size:13px;font-weight:700;
+.offer-col.mine{
+  border-color:var(--gold);
+  background:linear-gradient(180deg, color-mix(in srgb, var(--gold) 9%, var(--panel)), var(--panel));
 }
-.swap-arrow-icon{flex:none;font-size:22px;color:var(--gold);align-self:center;}
+.offer-label{font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-dim);}
+.offer-col.mine .offer-label{color:var(--gold);}
+.offer-card{display:flex;align-items:center;gap:10px;}
+.offer-card .mini-art{
+  width:50px;height:50px;border-radius:10px;flex:none;position:relative;overflow:hidden;
+  border:2px solid var(--catcolor);
+  background:radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--catcolor) 35%, transparent), var(--catbg, var(--slot)));
+}
+.offer-card .mini-art img{width:100%;height:100%;object-fit:contain;padding:6px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5));display:block;}
+.offer-card .mini-meta{min-width:0;}
+.offer-card .mini-name{font-weight:700;font-size:13px;color:var(--ink);line-height:1.25;}
+.offer-card .mini-spare{font-size:10.5px;color:var(--ink-faint);font-family:'JetBrains Mono',monospace;margin-top:1px;}
+.offer-col select{
+  width:100%;background:var(--slot);color:var(--ink);border:1px solid var(--line);
+  border-radius:8px;padding:7px 8px;font-family:inherit;font-size:12px;
+}
+.offer-col .swap-locked{
+  width:100%;background:var(--slot);color:var(--gold);border:1px solid var(--gold);
+  border-radius:8px;padding:7px 8px;font-size:12px;font-weight:700;text-align:center;
+}
+.receive-tag{font-size:10.5px;color:var(--ink-faint);border-top:1px dashed var(--line);padding-top:8px;}
+.receive-tag b{color:var(--ink-dim);font-weight:700;}
+.ticket-swap-icon{
+  flex:none;align-self:center;width:32px;height:32px;border-radius:50%;
+  background:var(--panel);border:1px solid var(--line);color:var(--gold);
+  display:flex;align-items:center;justify-content:center;font-size:15px;
+}
 .swap-actions{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;}
 
 .btn.tiny.confirm{background:linear-gradient(135deg,#3ecf8e,#2a9d6a);color:#0c2117;border:none;}
@@ -470,6 +546,16 @@ textarea{
   .panel-box p{font-size:12px;}
 
   .trade-filter-row input[type="text"]{min-width:0;}
+
+  .trade-hero{padding:12px 14px;gap:10px;}
+  .trade-hero .avatar-circle{width:38px;height:38px;font-size:16px;}
+  .trade-hero .name{font-size:16px;}
+  .partner-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;}
+  .partner-card{padding:9px 26px 9px 10px;gap:8px;}
+  .partner-card .avatar-circle{width:32px;height:32px;font-size:13px;}
+  .trade-ticket{padding:12px;}
+  .ticket-body{flex-direction:column;}
+  .ticket-swap-icon{margin:0 auto;transform:rotate(90deg);}
 }
 
 @media(max-width:380px){
@@ -649,6 +735,7 @@ function timeAgo(ts){
   return Math.floor(h/24)+"d ago";
 }
 function swapKey(from,to,category){ return `${from}::${to}::${category}`; }
+function avatarInitial(name){ const s = String(name||"?").trim(); return s ? s[0].toUpperCase() : "?"; }
 
 /* ---------------- Derived data ---------------- */
 function activeCards(){ return roster.cards.filter(c=>!c.excluded); }
@@ -1318,59 +1405,119 @@ function renderTradeView(){
     tradePartner = partners[0] ? partners[0].slug : null;
   }
 
-  const partnerRow = `
-  <div class="trade-partner-row">
-    <span class="you-label">${escHtml(accName(acct))}</span>
-    <span class="trade-arrow">⇄</span>
-    ${!partners.length
-      ? `<span class="empty-note" style="padding:0;">nobody right now</span>`
-      : partners.map(p=>`<button class="chip ${p.slug===tradePartner?'active':''}" data-action="select-trade-partner" data-partner="${escAttr(p.slug)}">${escHtml(p.name)}</button>`).join("")}
+  // "You" banner — always keep the account currently being viewed front and center.
+  const heroHtml = `
+  <div class="trade-hero">
+    <div class="avatar-circle">${escHtml(avatarInitial(accName(acct)))}</div>
+    <div class="info">
+      <div class="eyebrow">Trading as</div>
+      <div class="name">${escHtml(accName(acct))}</div>
+    </div>
   </div>`;
 
-  let swapSectionsHtml = `<div class="empty-note">Nobody has a duplicate ${escHtml(accName(acct))} needs while also needing one of ${escHtml(accName(acct))}'s duplicates in the same category.</div>`;
+  // Partner picker — a proper "choose an opponent" gallery instead of a bare row of chips.
+  let partnerPickerHtml;
+  if(!partners.length){
+    partnerPickerHtml = `<div class="empty-note">Nobody has a duplicate ${escHtml(accName(acct))} needs while also needing one of ${escHtml(accName(acct))}'s duplicates in the same category — check back once more cards are collected.</div>`;
+  } else {
+    partnerPickerHtml = `
+    <div class="partner-picker-label">Choose someone to trade with</div>
+    <div class="partner-grid">
+      ${partners.map(p=>{
+        const n = computeSwapCategories(acct, p.slug).length;
+        const active = p.slug===tradePartner;
+        return `
+        <button type="button" class="partner-card ${active?'active':''}" data-action="select-trade-partner" data-partner="${escAttr(p.slug)}">
+          ${active ? `<span class="partner-check">✓</span>` : ``}
+          <span class="avatar-circle">${escHtml(avatarInitial(p.name))}</span>
+          <span class="meta">
+            <span class="pname">${escHtml(p.name)}</span>
+            <span class="pcount">${n} card${n===1?'':'s'} match</span>
+          </span>
+        </button>`;
+      }).join("")}
+    </div>`;
+  }
 
+  let swapSectionsHtml = "";
   if(tradePartner){
+    swapSectionsHtml += `
+    <div class="trade-vs-banner">
+      <span class="side you">${escHtml(accName(acct))}</span>
+      <span class="vs-icon">⇄</span>
+      <span class="side">${escHtml(accName(tradePartner))}</span>
+    </div>`;
+
     const cats = computeSwapCategories(acct, tradePartner);
-    swapSectionsHtml = cats.map(({cat, iGive, iGet})=>{
-      const choice = swapChoice[cat.key] || {};
-      const chosenGive = iGive.find(c=>c.id===choice.give) ? choice.give : iGive[0].id;
-      const chosenGet  = iGet.find(c=>c.id===choice.get)   ? choice.get  : iGet[0].id;
-      const key = swapKey(acct, tradePartner, cat.key);
-      const pending = pendingTradeOffers.get(key);
-      return `
-      <div class="swap-section">
-        <h4><span class="swap-cat-dot" style="background:${cat.hex}"></span>${cat.label}</h4>
-        <div class="swap-row">
-          <div class="swap-side">
-            <label>${escHtml(accName(acct))} gives</label>
-            ${pending
-              ? `<div class="swap-locked">${escHtml(pending.giveCardName)}</div>`
-              : `<select data-role="give-card" data-cat="${cat.key}">
-                  ${iGive.map(c=>`<option value="${escAttr(c.id)}" ${c.id===chosenGive?'selected':''}>${escHtml(c.name)} (×${getCount(acct,c.id)-1} spare)</option>`).join("")}
-                </select>`}
-          </div>
-          <div class="swap-arrow-icon">⇄</div>
-          <div class="swap-side">
-            <label>${escHtml(accName(tradePartner))} gives</label>
-            ${pending
-              ? `<div class="swap-locked">${escHtml(pending.getCardName)}</div>`
-              : `<select data-role="get-card" data-cat="${cat.key}">
-                  ${iGet.map(c=>`<option value="${escAttr(c.id)}" ${c.id===chosenGet?'selected':''}>${escHtml(c.name)} (×${getCount(tradePartner,c.id)-1} spare)</option>`).join("")}
-                </select>`}
-          </div>
-        </div>
-        <div class="swap-actions">
-          ${pending ? `
-            <button class="btn tiny confirm" data-action="accept-trade" data-key="${escAttr(key)}">✓ Trade accepted</button>
-            <button class="btn tiny secondary" data-action="cancel-offer" data-key="${escAttr(key)}">Cancel</button>
-          ` : `
-            <button class="btn tiny" data-action="offer-trade" data-from="${escAttr(acct)}" data-to="${escAttr(tradePartner)}" data-cat="${escAttr(cat.key)}" data-give="${escAttr(chosenGive)}" data-get="${escAttr(chosenGet)}">Trade offered</button>
-          `}
-        </div>
-      </div>`;
-    }).join("");
     if(!cats.length){
-      swapSectionsHtml = `<div class="empty-note">No matching category right now — ${escHtml(accName(acct))} and ${escHtml(accName(tradePartner))} don't each have a duplicate the other needs in the same category.</div>`;
+      swapSectionsHtml += `<div class="empty-note">No matching category right now — ${escHtml(accName(acct))} and ${escHtml(accName(tradePartner))} don't each have a duplicate the other needs in the same category.</div>`;
+    } else {
+      swapSectionsHtml += cats.map(({cat, iGive, iGet})=>{
+        const choice = swapChoice[cat.key] || {};
+        const chosenGive = iGive.find(c=>c.id===choice.give) ? choice.give : iGive[0].id;
+        const chosenGet  = iGet.find(c=>c.id===choice.get)   ? choice.get  : iGet[0].id;
+        const key = swapKey(acct, tradePartner, cat.key);
+        const pending = pendingTradeOffers.get(key);
+
+        const giveCardObj = iGive.find(c=>c.id===chosenGive);
+        const getCardObj  = iGet.find(c=>c.id===chosenGet);
+        const giveDisplayName = pending ? pending.giveCardName : giveCardObj.name;
+        const getDisplayName  = pending ? pending.getCardName  : getCardObj.name;
+        const giveDisplayImg  = pending ? imageFor({id: pending.giveCardId}) : imageFor(giveCardObj);
+        const getDisplayImg   = pending ? imageFor({id: pending.getCardId})  : imageFor(getCardObj);
+
+        return `
+        <div class="trade-ticket">
+          <div class="ticket-head"><span class="swap-cat-dot" style="background:${cat.hex}"></span>${cat.label}</div>
+          <div class="ticket-body">
+            <div class="offer-col mine">
+              <div class="offer-label">${escHtml(accName(acct))} OFFERS</div>
+              <div class="offer-card">
+                <div class="mini-art" style="--catcolor:${cat.hex};--catbg:${cat.dim};">
+                  ${giveDisplayImg ? `<img src="${escAttr(giveDisplayImg)}" alt="">` : ''}
+                </div>
+                <div class="mini-meta">
+                  <div class="mini-name">${escHtml(giveDisplayName)}</div>
+                  ${!pending ? `<div class="mini-spare">×${getCount(acct,chosenGive)-1} spare</div>` : ``}
+                </div>
+              </div>
+              ${pending
+                ? `<div class="swap-locked">${escHtml(pending.giveCardName)}</div>`
+                : `<select data-role="give-card" data-cat="${cat.key}">
+                    ${iGive.map(c=>`<option value="${escAttr(c.id)}" ${c.id===chosenGive?'selected':''}>${escHtml(c.name)} (×${getCount(acct,c.id)-1} spare)</option>`).join("")}
+                  </select>`}
+              <div class="receive-tag"><b>${escHtml(accName(tradePartner))}</b> RECEIVES</div>
+            </div>
+            <div class="ticket-swap-icon">⇄</div>
+            <div class="offer-col">
+              <div class="offer-label">${escHtml(accName(tradePartner))} OFFERS</div>
+              <div class="offer-card">
+                <div class="mini-art" style="--catcolor:${cat.hex};--catbg:${cat.dim};">
+                  ${getDisplayImg ? `<img src="${escAttr(getDisplayImg)}" alt="">` : ''}
+                </div>
+                <div class="mini-meta">
+                  <div class="mini-name">${escHtml(getDisplayName)}</div>
+                  ${!pending ? `<div class="mini-spare">×${getCount(tradePartner,chosenGet)-1} spare</div>` : ``}
+                </div>
+              </div>
+              ${pending
+                ? `<div class="swap-locked">${escHtml(pending.getCardName)}</div>`
+                : `<select data-role="get-card" data-cat="${cat.key}">
+                    ${iGet.map(c=>`<option value="${escAttr(c.id)}" ${c.id===chosenGet?'selected':''}>${escHtml(c.name)} (×${getCount(tradePartner,c.id)-1} spare)</option>`).join("")}
+                  </select>`}
+              <div class="receive-tag"><b>${escHtml(accName(acct))}</b> RECEIVES</div>
+            </div>
+          </div>
+          <div class="swap-actions">
+            ${pending ? `
+              <button class="btn tiny confirm" data-action="accept-trade" data-key="${escAttr(key)}">✓ Trade accepted</button>
+              <button class="btn tiny secondary" data-action="cancel-offer" data-key="${escAttr(key)}">Cancel</button>
+            ` : `
+              <button class="btn tiny" data-action="offer-trade" data-from="${escAttr(acct)}" data-to="${escAttr(tradePartner)}" data-cat="${escAttr(cat.key)}" data-give="${escAttr(chosenGive)}" data-get="${escAttr(chosenGet)}">Trade offered</button>
+            `}
+          </div>
+        </div>`;
+      }).join("");
     }
   }
 
@@ -1402,11 +1549,12 @@ function renderTradeView(){
   <div class="panel-box" style="margin-bottom:14px;">
     <p style="margin:0;">Please re-enact the trades in-game down here as well. This helps keep the collection up-to-date.</p>
   </div>
+  ${heroHtml}
   <div class="trade-filter-row">
     <input type="text" id="trade-search" placeholder="Search a card…" value="${escAttr(tradeFilterQuery)}">
     <select id="trade-cat-filter">${catOpts}</select>
   </div>
-  ${partnerRow}
+  ${partnerPickerHtml}
   ${swapSectionsHtml}
   <div class="panel-box">
     <h3 style="margin-bottom:10px;">Trade history for ${escHtml(accName(acct))}</h3>
