@@ -85,6 +85,7 @@ header.app-head::before{
   padding:8px 14px;margin-bottom:10px;
 }
 .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--builder);box-shadow:0 0 8px var(--builder);flex:none;}
+.guide-hint{color:var(--gold);font-size:11.5px;font-weight:600;margin-left:auto;white-space:nowrap;}
 .btn.tiny.secondary{padding:5px 12px;font-size:11px;}
 
 .mode-bar{
@@ -108,6 +109,7 @@ header.app-head::before{
   border-radius:14px;margin-bottom:16px;
 }
 .account-bar .label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-faint);margin-right:4px;}
+.badge-hint{margin:-10px 2px 16px;font-size:11px;color:var(--ink-faint);}
 /* Account selectors are intentionally more block-like than the rounded
    action chips elsewhere in the interface. */
 .account-bar > .chip:not(.add){
@@ -522,6 +524,14 @@ table.matrix td.cell{font-family:'JetBrains Mono',monospace;}
 .trade-item .tag{font-size:10px;padding:2px 7px;border-radius:999px;color:#fff;white-space:nowrap;}
 .trade-item-right{display:flex;align-items:center;gap:8px;flex:none;}
 .btn.tiny{padding:5px 10px;font-size:11.5px;border-radius:7px;white-space:nowrap;}
+.btn.guide-glow{position:relative;z-index:0;}
+.btn.guide-glow::after{
+  content:"";position:absolute;inset:-3px;border-radius:11px;z-index:-2;
+  box-shadow:0 0 9px 1px var(--gold-glow);
+  animation:guideFireflyPulse 2.4s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes guideFireflyPulse{0%,100%{opacity:.35;}50%{opacity:.85;}}
 .log-time{font-size:11px;color:var(--ink-faint);white-space:nowrap;}
 .empty-note{color:var(--ink-faint);font-size:13px;padding:10px 2px;}
 
@@ -971,6 +981,7 @@ let becomingContributor = false;
 // Tutorial state
 let tutorialActive = false;
 let tutorialStep = 0;
+let tutorialSeen = false; // gates the guide button's firefly glow, not an auto-launch anymore
 let pendingTradeOffers = new Map(); // key "from::to::category" -> {from, to, category, giveCardId, giveCardName, getCardId, getCardName}
 let tradePartner = null;            // slug of the account the viewingAccount is currently trading with
 let swapChoice = {};                // category key -> {give: cardId, get: cardId}, last picked options per category
@@ -1275,9 +1286,8 @@ async function boot(){
   setTimeout(()=>{ if(!firstRenderDone) render(); }, 4000);
 
   attachTutorialHandlers();
-  let seenTutorial = false;
-  try{ seenTutorial = localStorage.getItem(TUTORIAL_KEY) === "1"; }catch(e){}
-  if(!seenTutorial) startTutorial();
+  try{ tutorialSeen = localStorage.getItem(TUTORIAL_KEY) === "1"; }catch(e){}
+  // No longer auto-launches on first visit — the Guide button glows instead until clicked.
 }
 boot();
 
@@ -1302,7 +1312,7 @@ function render(){
 
 function renderHeader(){
   const now = new Date();
-  const tradeClose = new Date(Date.UTC(2026,8,2,8,0,0)); // Sep 2 2026 08:00 UTC
+  const tradeClose = new Date(Date.UTC(2026,8,2,8,0,0)); // Sep 2 2026 08:00 UTC = Sep 2 2026 16:00 SGT
   const msLeft = tradeClose - now;
   let clockVal, clockSub;
   if(msLeft > 0){
@@ -1318,7 +1328,7 @@ function renderHeader(){
   <header class="app-head">
     <div class="title-block">
       <h1>🃏Card Binder</h1>
-      <p><b>Autism Prime Max.</b>  Trading closes Sep&nbsp;2, 08:00&nbsp;UTC.</p>
+      <p><b>Autism Prime Max.</b>  Trading closes Sep&nbsp;2, 16:00&nbsp;SGT.</p>
     </div>
     <div class="event-clock">
       <div class="label">Trading window</div>
@@ -1333,7 +1343,8 @@ function renderSyncBar(){
   return `<div class="sync-bar">
     <span class="sync-dot"></span> Live gallery · synced ${ts}
     <button class="btn secondary tiny" data-action="refresh-now">Refresh now</button>
-    <button class="btn secondary tiny" data-action="replay-tutorial" title="Replay the setup guide">↺ Guide</button>
+    ${tutorialSeen ? '' : `<span class="guide-hint">New here? Tap Guide →</span>`}
+    <button class="btn secondary tiny ${tutorialSeen?'':'guide-glow'}" data-action="replay-tutorial" title="${tutorialSeen? 'Replay the setup guide' : 'New here? Click for a quick walkthrough'}">↺ Guide</button>
   </div>`;
 }
 
@@ -1386,11 +1397,13 @@ function renderAccountBar(){
       ${canManage ? `<span class="chip-x" data-action="delete-account" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Delete account" : "Remove your account"}">✕</span>` : ''}
     </button>`;
   }).join("");
+  const canManageAny = accountsMeta.list.some(a => isAdmin() || (!a.locked && a.ownerUid === currentUid));
   return `
   <div class="account-bar">
     <span class="label">Accounts</span>
     ${chips || `<span style="color:var(--ink-faint);font-size:12.5px;">No accounts yet — be the first to add one.</span>`}
-  </div>`;
+  </div>
+  ${canManageAny ? `<p class="badge-hint">💡 Tap the badge on your account's chip to cycle its clan — (AP) → (SL) → (MF).</p>` : ''}`;
 }
 
 function focusAccountInput(){
@@ -2000,7 +2013,9 @@ function onClick(e){
   if(action==="confirm-contributor"){ confirmContributor(); return; }
 
   if(action==="replay-tutorial"){
-    try{ localStorage.removeItem(TUTORIAL_KEY); }catch(e){}
+    tutorialSeen = true;
+    try{ localStorage.setItem(TUTORIAL_KEY, "1"); }catch(e){}
+    render();
     startTutorial();
     return;
   }
