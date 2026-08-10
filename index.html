@@ -114,7 +114,21 @@ header.app-head::before{
   border-radius:8px;
   padding:8px 13px;
   border-width:1px;
+  display:inline-flex;
+  align-items:center;
 }
+.chip-badge{
+  display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+  flex:none;margin-right:8px;line-height:1;border-radius:6px;padding:2px;
+}
+.chip-badge[data-action]{cursor:pointer;}
+.chip-badge[data-action]:hover{background:rgba(232,184,75,.15);}
+.chip-badge-tag{
+  font-size:7.5px;font-weight:800;letter-spacing:.4px;color:var(--ink-faint);
+  margin-bottom:1px;white-space:nowrap;
+}
+.chip.active .chip-badge-tag{color:#241a05;opacity:.75;}
+.chip-badge img{width:18px;height:18px;display:block;object-fit:contain;}
 .chip{
   padding:7px 14px;border-radius:999px;border:1px solid var(--line);
   background:var(--panel);color:var(--ink-dim);font-size:13.5px;font-weight:600;
@@ -400,11 +414,22 @@ table.matrix td.cell{font-family:'JetBrains Mono',monospace;}
 }
 .partner-card.active .avatar-circle{background:linear-gradient(135deg,var(--gold),#c9922f);color:#241a05;}
 .partner-card.active .pcount{color:var(--gold);font-weight:600;}
-.partner-check{
-  position:absolute;top:9px;right:9px;width:18px;height:18px;border-radius:50%;
-  background:var(--gold);color:#241a05;font-size:11px;font-weight:800;line-height:1;
+.partner-card.contested{
+  border-color:var(--super);
+  background:linear-gradient(135deg, color-mix(in srgb, var(--super) 16%, var(--panel)), var(--panel));
+  box-shadow:0 0 0 3px rgba(255,106,61,.3);
+}
+.partner-card.contested:hover{border-color:var(--super);}
+.partner-card.contested .pcount{color:var(--super);font-weight:600;}
+.partner-badges{position:absolute;top:9px;right:9px;display:flex;gap:4px;}
+.partner-check,.partner-warn{
+  width:18px;height:18px;border-radius:50%;flex:none;
+  font-size:11px;font-weight:800;line-height:1;
   display:flex;align-items:center;justify-content:center;
 }
+.partner-check{background:var(--gold);color:#241a05;}
+.partner-warn{background:var(--super);color:#241a05;animation:partnerWarnPulse 1.8s ease-in-out infinite;}
+@keyframes partnerWarnPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,106,61,.5);}50%{box-shadow:0 0 0 4px rgba(255,106,61,0);}}
 
 .trade-vs-banner{
   display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 18px;
@@ -571,6 +596,9 @@ textarea{
   }
   .account-bar .label{width:100%;margin-right:0;margin-bottom:1px;}
   .account-bar .chip{padding:7px 11px;font-size:12px;}
+  .chip-badge img{width:15px;height:15px;}
+  .chip-badge-tag{font-size:6.5px;}
+  .chip-badge{margin-right:6px;}
 
   .view-tabs{padding:0 4px;}
   .view-tab{padding:9px 11px 8px;font-size:12px;}
@@ -915,9 +943,19 @@ const DEFAULT_CARDS = [
 
 const SCHEMA_VERSION = 2;
 
+// Clan badges an account can fly next to its name — persisted per-account (accounts/{slug}.clan)
+// so it syncs across every device viewing the gallery.
+const CLAN_BADGES = {
+  AP: "https://api-assets.clashofclans.com/badges/70/a_uwHX3A0FHVcsXdVHa04ivil4-ajy5FOA7paU7ndSg.png",
+  SL: "https://api-assets.clashofclans.com/badges/70/PlRDGPfcdFNDRqVzTgaUMPS8krGf2fpAa2GhnOza2PM.png",
+  MF: "https://api-assets.clashofclans.com/badges/70/xBHfBPge5sUxlkUcowrb6-kLXTjygsStrY5hrPdBznk.png"
+};
+const CLAN_BADGE_ORDER = ["AP","SL","MF"];
+function clanOf(a){ return (a && a.clan && CLAN_BADGES[a.clan]) ? a.clan : "AP"; }
+
 /* ---------------- State ---------------- */
 let roster = { cards: DEFAULT_CARDS.map(c=>({...c})), schemaVersion: SCHEMA_VERSION }; // { cards:[...], schemaVersion }
-let accountsMeta = { list: [] };  // { list:[{slug, name, locked, ownerUid}] }
+let accountsMeta = { list: [] };  // { list:[{slug, name, locked, ownerUid, clan}] }
 let collections = {};             // { slug: { cardId: count, _updatedAt: Timestamp } }
 let collectionMeta = {};          // { slug: millis } — last time that collection was written to, for "Last updated" labels
 let tradeLog = { entries: [] };   // { entries:[{id, fromSlug, toSlug, fromName, toName, cardId, cardName, ts}] }
@@ -1054,7 +1092,7 @@ async function createOrClaimAccount(name){
   }
   try{
     if(!existing){
-      await setDoc(doc(db,"accounts",slug), { slug, name, locked:false, ownerUid: currentUid, createdAt: serverTimestamp() });
+      await setDoc(doc(db,"accounts",slug), { slug, name, locked:false, clan:"AP", ownerUid: currentUid, createdAt: serverTimestamp() });
       await setDoc(doc(db,"collections",slug), {});
     }
     return slug;
@@ -1335,8 +1373,13 @@ function renderAccountBar(){
       </span>`;
     }
     const canManage = isAdmin() || (!a.locked && a.ownerUid === currentUid);
+    const clanKey = clanOf(a);
     return `
     <button class="chip ${a.slug===viewingAccount?'active':''}" data-action="select-account" data-account="${escAttr(a.slug)}">
+      <span class="chip-badge" ${canManage?`data-action="cycle-clan-badge" data-account="${escAttr(a.slug)}"`:''} title="${canManage?`Clan: ${clanKey} — tap to switch`:`Clan: ${clanKey}`}">
+        <span class="chip-badge-tag">(${clanKey})</span>
+        <img src="${CLAN_BADGES[clanKey]}" alt="${clanKey}">
+      </span>
       ${escHtml(a.name)}
       ${a.locked ? `<span class="chip-lock" title="Pre-established account — admin can manage this account">🔒</span>` : ''}
       ${canManage ? `<span class="chip-pencil" data-action="edit-account-name" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Rename account" : "Rename your account"}">✎</span>` : ''}
@@ -1613,6 +1656,28 @@ function eligibleTradePartners(acct){
   return accountsMeta.list.filter(a => a.slug!==acct && computeSwapCategories(acct, a.slug).length>0);
 }
 
+// A card acct could give away only exists in limited supply (owned count - 1 kept copy).
+// If more eligible partners are lined up for that same card than acct has spares of it,
+// only one of them can actually complete that trade — flag every partner competing for
+// a card where demand outstrips supply, so the UI can warn "first offer wins".
+function computeContestedPartners(acct, partners){
+  const spareOf = {};       // cardId -> spare copies acct can give away
+  const demand = {};        // cardId -> Set of partner slugs who could receive it
+  partners.forEach(p=>{
+    computeSwapCategories(acct, p.slug).forEach(({iGive})=>{
+      iGive.forEach(c=>{
+        if(spareOf[c.id]===undefined) spareOf[c.id] = Math.max(0, getCount(acct,c.id)-1);
+        (demand[c.id] || (demand[c.id]=new Set())).add(p.slug);
+      });
+    });
+  });
+  const contested = new Set();
+  Object.keys(demand).forEach(cardId=>{
+    if(demand[cardId].size > spareOf[cardId]) demand[cardId].forEach(slug=>contested.add(slug));
+  });
+  return contested;
+}
+
 function renderTradeView(){
   const acct = viewingAccount;
 
@@ -1644,19 +1709,24 @@ function renderTradeView(){
   if(!partners.length){
     partnerPickerHtml = `<div class="empty-note">Nobody has a duplicate ${escHtml(accName(acct))} needs while also needing one of ${escHtml(accName(acct))}'s duplicates in the same category — check back once more cards are collected.</div>`;
   } else {
+    const contested = computeContestedPartners(acct, partners);
     partnerPickerHtml = `
     <div class="partner-picker-label">Choose someone to trade with</div>
     <div class="partner-grid">
       ${partners.map(p=>{
         const n = computeSwapCategories(acct, p.slug).length;
         const active = p.slug===tradePartner;
+        const isContested = contested.has(p.slug);
         return `
-        <button type="button" class="partner-card ${active?'active':''}" data-action="select-trade-partner" data-partner="${escAttr(p.slug)}">
-          ${active ? `<span class="partner-check">✓</span>` : ``}
+        <button type="button" class="partner-card ${active?'active':''} ${isContested?'contested':''}" data-action="select-trade-partner" data-partner="${escAttr(p.slug)}">
+          <span class="partner-badges">
+            ${isContested ? `<span class="partner-warn" title="Someone else is also eligible for this card and there's only one spare — first to accept gets it.">⚠</span>` : ``}
+            ${active ? `<span class="partner-check">✓</span>` : ``}
+          </span>
           <span class="avatar-circle">${escHtml(avatarInitial(p.name))}</span>
           <span class="meta">
             <span class="pname">${escHtml(p.name)}</span>
-            <span class="pcount">${n} card${n===1?'':'s'} match</span>
+            <span class="pcount">${n} card${n===1?'':'s'} match${isContested ? ' · limited supply' : ''}</span>
           </span>
         </button>`;
       }).join("")}
@@ -1936,6 +2006,21 @@ function onClick(e){
   }
 
   if(action==="select-account"){ viewingAccount = el.dataset.account; recomputeSettings(); render(); return; }
+  if(action==="cycle-clan-badge"){
+    e.stopPropagation();
+    const slug = el.dataset.account;
+    const target = accountBySlug(slug);
+    if(!target) return;
+    const canManage = isAdmin() || (!target.locked && target.ownerUid === currentUid);
+    if(!canManage) return;
+    const cur = clanOf(target);
+    const next = CLAN_BADGE_ORDER[(CLAN_BADGE_ORDER.indexOf(cur)+1) % CLAN_BADGE_ORDER.length];
+    updateDoc(doc(db,"accounts",slug), { clan: next }).catch(err=>{
+      console.error("update clan badge failed", err);
+      flashStatus("⚠ Couldn't update clan badge.");
+    });
+    return;
+  }
   if(action==="exit-admin-edit"){
     if(isAdmin()) viewingAccount = settings.myAccount || (accountsMeta.list[0] ? accountsMeta.list[0].slug : null);
     render();
