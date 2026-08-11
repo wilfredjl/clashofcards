@@ -28,6 +28,8 @@
   --builder-dim:#173d3f;
   --super:#ff6a3d;
   --super-dim:#3f2318;
+  --search-orange:#d97e3d;
+  --search-orange-dim:#3a2a1c;
 }
 *{box-sizing:border-box;}
 body{
@@ -313,6 +315,24 @@ header.app-head::before{
   height:2px;
   background:var(--gold);
   border-radius:2px 2px 0 0;
+}
+.view-tab[data-view="search"]{
+  color:var(--search-orange);
+  border-color:var(--search-orange);
+  background:var(--search-orange-dim);
+}
+.view-tab[data-view="search"]:hover{
+  color:var(--search-orange);
+  background:var(--search-orange-dim);
+  border-color:var(--search-orange);
+}
+.view-tab[data-view="search"].active{
+  color:var(--search-orange);
+  background:var(--search-orange-dim);
+  border-color:var(--search-orange);
+}
+.view-tab[data-view="search"].active::after{
+  background:var(--search-orange);
 }
 
 .view{
