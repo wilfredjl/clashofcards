@@ -135,6 +135,7 @@ header.app-head::before{
   background:rgba(232,184,75,.14);border-color:var(--gold);color:var(--gold);
 }
 .account-sort .sort-icon{font-size:11px;line-height:1;}
+.sort-label-short{display:none;}
 /* "Only in AP" is a toggle, not a sort choice, so it's styled as a real switch and
    set apart from the sort-mode buttons with a divider. */
 .sort-divider{width:1px;height:16px;background:var(--line);margin:0 3px;flex:none;}
@@ -266,10 +267,15 @@ header.app-head::before{
   gap:0;
   margin:0;
   padding:0 8px;
-  flex-wrap:wrap;
+  flex-wrap:nowrap;
   align-items:flex-end;
   border-bottom:1px solid var(--line);
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
 }
+.view-tabs::-webkit-scrollbar{display:none;}
 .view-tab{
   position:relative;
   padding:11px 18px 10px;
@@ -284,6 +290,8 @@ header.app-head::before{
   cursor:pointer;
   font-family:inherit;
   transition:background .15s,color .15s,border-color .15s;
+  white-space:nowrap;
+  flex:0 0 auto;
 }
 .view-tab:hover{
   color:var(--ink);
@@ -808,10 +816,23 @@ table.matrix tbody tr.row-selected td.cell-dup{background:rgba(232,184,75,.28);}
     padding:10px;
     margin-bottom:12px;
   }
-  .account-panel-head{margin-bottom:8px;}
+  .account-panel-head{margin-bottom:8px;align-items:flex-start;justify-content:flex-start;}
   .account-panel-head .label{width:auto;}
-  .account-sort{width:100%;}
-  .account-sort .sort-btn{flex:1;}
+  /* Unwrap .account-sort so the toggle, sort label and sort buttons each become
+     direct flex items of the header row, letting us place them independently
+     instead of being stuck squeezed together inside one crowded strip. */
+  .account-sort{display:contents;}
+  .ap-toggle-btn{order:2;margin-left:auto;}
+  .sort-divider{display:none;}
+  .account-sort .sort-label{
+    order:3;flex-basis:100%;width:100%;
+    margin-top:8px;padding-bottom:6px;
+    border-bottom:1px solid var(--line);
+    text-align:left;
+  }
+  .account-sort .sort-btn{order:4;flex:1 1 0;justify-content:center;padding:6px 4px;font-size:11px;}
+  .sort-label-full{display:none;}
+  .sort-label-short{display:inline;}
   .account-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:7px;}
   .account-grid > .chip{padding:7px 10px;font-size:12px;}
   .chip-badge img{width:15px;height:15px;}
@@ -819,8 +840,8 @@ table.matrix tbody tr.row-selected td.cell-dup{background:rgba(232,184,75,.28);}
   .chip-badge{margin-right:6px;}
   .chip-stat{font-size:9px;}
 
-  .view-tabs{padding:0 4px;}
-  .view-tab{padding:9px 11px 8px;font-size:12px;}
+  .view-tabs{padding:0 4px;-webkit-overflow-scrolling:touch;}
+  .view-tab{padding:9px 11px 8px;font-size:11.5px;}
   .view-tab.active{padding-top:10px;}
 
   .overall-bar{
@@ -909,7 +930,7 @@ table.matrix tbody tr.row-selected td.cell-dup{background:rgba(232,184,75,.28);}
   .binder-page{padding-left:20px;padding-right:12px;}
   .card-grid{gap:6px;}
   .card-name{font-size:9px;}
-  .view-tab{padding-left:9px;padding-right:9px;font-size:11.5px;}
+  .view-tab{padding:9px 8px 8px;font-size:10.5px;}
 }
 
 @media(max-width:640px){.editor-row{grid-template-columns:1fr;}}
@@ -1686,9 +1707,9 @@ function renderModeBar(){
 }
 
 const ACCOUNT_SORT_OPTIONS = [
-  ["name","Name","🔤"],
-  ["collected","Most cards collected","📶"],
-  ["trades","Trades available","🔁"]
+  ["name","Name","🔤","Name"],
+  ["collected","Most cards collected","📶","Collected"],
+  ["trades","Trades available","🔁","Trades"]
 ];
 function accountCardsCollected(slug){
   return activeCards().filter(c => getCount(slug,c.id) > 0).length;
@@ -1755,8 +1776,8 @@ function renderAccountBar(){
         </button>
         ${accountsMeta.list.length > 1 ? `
         <span class="sort-divider"></span>
-        <span class="sort-label">Sort:</span>
-        ${ACCOUNT_SORT_OPTIONS.map(([val,label,icon])=>`<button type="button" class="sort-btn${accountSortMode===val?' active':''}" data-action="sort-accounts" data-sort="${val}"><span class="sort-icon">${icon}</span>${label}</button>`).join("")}
+        <span class="sort-label">Sort</span>
+        ${ACCOUNT_SORT_OPTIONS.map(([val,label,icon,short])=>`<button type="button" class="sort-btn${accountSortMode===val?' active':''}" data-action="sort-accounts" data-sort="${val}"><span class="sort-icon">${icon}</span><span class="sort-label-full">${label}</span><span class="sort-label-short">${short}</span></button>`).join("")}
         ` : ''}
       </div>
     </div>
@@ -2364,7 +2385,7 @@ function renderTradeView(){
   </div>
   <div class="panel-box">
     <h3 style="margin-bottom:10px;">Global activity</h3>
-    <p style="margin:0 0 10px;">Every change in the binders gets logged here.</p>
+    <p style="margin:0 0 10px;">Every change made across the whole gallery, most recent first.</p>
     ${renderGlobalActivity()}
   </div>`;
 }
