@@ -180,13 +180,14 @@ header.app-head::before{
    action chips elsewhere in the interface. */
 .account-grid > .chip{
   border-radius:8px;
-  padding:9px 12px;
+  padding:9px 38px 9px 12px;
   border-width:1px;
   display:flex;
   align-items:flex-start;
   width:100%;
   min-width:0;
   white-space:normal;
+  position:relative;
 }
 .account-grid > .chip .chip-badge{margin-top:1px;}
 /* Give chips a little more breathing room now names wrap instead of truncating. */
@@ -231,11 +232,24 @@ header.app-head::before{
 .chip.chip-other-clan:not(.active) .chip-badge-tag{color:var(--super);}
 .chip.add{background:transparent;border-style:dashed;color:var(--ink-faint);}
 .chip.add:hover{color:var(--gold);border-color:var(--gold);}
-.chip-x{margin-left:8px;opacity:.55;font-weight:400;margin-top:1px;}
+/* Pencil/delete sit in a fixed corner of the chip instead of inline after the name,
+   so their presence never shifts or "offsets" the account name's layout. The dark
+   pill behind them keeps them reading as a separate control even when a long name
+   wraps close to that corner. */
+.account-grid > .chip .chip-actions{
+  position:absolute;top:6px;right:6px;
+  display:flex;align-items:center;gap:5px;
+  background:rgba(0,0,0,.25);
+  border-radius:7px;
+  padding:3px 5px;
+  line-height:1;
+}
+.chip.active .chip-actions{background:rgba(0,0,0,.14);}
+.chip-x{opacity:.65;font-weight:400;font-size:11px;}
 .chip-x:hover{opacity:1;}
-.chip-pencil{margin-left:8px;opacity:.5;font-weight:400;font-size:12px;display:inline-block;margin-top:1px;}
+.chip-pencil{opacity:.6;font-weight:400;font-size:11px;display:inline-block;}
 .chip-pencil:hover{opacity:1;}
-.chip.active .chip-pencil,.chip.active .chip-x{opacity:.7;}
+.chip.active .chip-pencil,.chip.active .chip-x{opacity:.75;}
 .chip.active .chip-pencil:hover,.chip.active .chip-x:hover{opacity:1;}
 .chip-edit-wrap{display:inline-flex;align-items:center;}
 .chip-input{
@@ -1531,6 +1545,13 @@ function setupListeners(){
     activityLog.entries = snap.docs.map(d=>({ id:d.id, ...d.data() }));
     readyFlags.activity = true;
     maybeRender();
+  }, (err)=>{
+    // The activity log is a nice-to-have, not core functionality. If it can't be
+    // read (e.g. the "activity" collection has no security rule yet), don't let
+    // that permanently block every other render in the app.
+    console.error("activity listener failed", err);
+    readyFlags.activity = true;
+    maybeRender();
   });
 }
 
@@ -1717,8 +1738,10 @@ function renderAccountBar(){
         ${statHtml}
         ${chipUpdatedHtml(a.slug)}
       </span>
-      ${canManage ? `<span class="chip-pencil" data-action="edit-account-name" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Rename account" : "Rename your account"}">✎</span>` : ''}
-      ${canManage ? `<span class="chip-x" data-action="delete-account" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Delete account" : "Remove your account"}">✕</span>` : ''}
+      ${canManage ? `<span class="chip-actions">
+        <span class="chip-pencil" data-action="edit-account-name" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Rename account" : "Rename your account"}">✎</span>
+        <span class="chip-x" data-action="delete-account" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Delete account" : "Remove your account"}">✕</span>
+      </span>` : ''}
     </button>`;
   }).join("");
   return `
@@ -2341,7 +2364,7 @@ function renderTradeView(){
   </div>
   <div class="panel-box">
     <h3 style="margin-bottom:10px;">Global activity</h3>
-    <p style="margin:0 0 10px;">Every change made across the whole gallery, most recent first.</p>
+    <p style="margin:0 0 10px;">Every change in the binders gets logged here.</p>
     ${renderGlobalActivity()}
   </div>`;
 }
