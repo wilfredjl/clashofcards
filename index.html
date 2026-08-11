@@ -1022,11 +1022,14 @@ const SCHEMA_VERSION = 2;
 // so it syncs across every device viewing the gallery.
 const CLAN_BADGES = {
   AP: "https://api-assets.clashofclans.com/badges/70/a_uwHX3A0FHVcsXdVHa04ivil4-ajy5FOA7paU7ndSg.png",
-  SL: "https://api-assets.clashofclans.com/badges/70/PlRDGPfcdFNDRqVzTgaUMPS8krGf2fpAa2GhnOza2PM.png",
-  MF: "https://api-assets.clashofclans.com/badges/70/xBHfBPge5sUxlkUcowrb6-kLXTjygsStrY5hrPdBznk.png"
+  OTHER: "https://api-assets.clashofclans.com/badges/70/_FqLf6FDO0dxJ26GeaomWKtJvRnxaANTI30G_7U73l4.png"
 };
-const CLAN_BADGE_ORDER = ["AP","SL","MF"];
-function clanOf(a){ return (a && a.clan && CLAN_BADGES[a.clan]) ? a.clan : "AP"; }
+const CLAN_BADGE_ORDER = ["AP","OTHER"];
+const CLAN_BADGE_LABEL = { AP: "AP", OTHER: "?" };
+// Accounts created before this change (or never toggled) still say clan:"AP" or have no
+// clan field at all — both default to AP so nobody gets silently bucketed as "not in AP".
+function clanOf(a){ return (a && a.clan === "OTHER") ? "OTHER" : "AP"; }
+function inAP(a){ return clanOf(a) === "AP"; }
 
 /* ---------------- State ---------------- */
 let roster = { cards: DEFAULT_CARDS.map(c=>({...c})), schemaVersion: SCHEMA_VERSION }; // { cards:[...], schemaVersion }
@@ -1043,6 +1046,8 @@ let viewingAccount = null;   // slug
 let editingAccount = null;   // slug
 let becomingContributor = false;
 let accountSortMode = "name"; // "name" | "collected" | "trades"
+let filterApOnly = false;    // account-grid + trade-finder filter: hide/exclude non-AP accounts
+let editOverride = false;    // when true, lets you edit the *viewed* account even if it isn't yours (resets on account switch)
 
 // Tutorial state
 let tutorialActive = false;
@@ -1088,12 +1093,22 @@ function recomputeSettings(){
   settings.myAccounts = mine;
   settings.myAccount = mine.includes(viewingAccount) ? viewingAccount : (mine[0] || null);
 }
+// Anyone signed in can edit any account's binder — including locked (pre-established)
+// ones, since those belong to friends who can't sign in and edit their own. Your own
+// account is always editable; anyone else's requires explicitly flipping into edit mode
+// via the mode-bar (editOverride), which resets to off every time you switch accounts —
+// see the "select-account" handler. Locked accounts still can't be renamed or deleted by
+// non-admins — that protection is unrelated to who can log card counts.
+function isOwnAccount(slug){
+  const a = accountBySlug(slug);
+  return !!(a && a.ownerUid && currentUid && a.ownerUid === currentUid);
+}
 function canEditViewing(){
   if(!viewingAccount || !currentUid) return false;
   const a = accountBySlug(viewingAccount);
   if(!a) return false;
   if(isAdmin()) return true;
-  return !!(!a.locked && a.ownerUid === currentUid);
+  return isOwnAccount(viewingAccount) || editOverride;
 }
 
 /* ---------------- Toast / status ---------------- */
@@ -1432,13 +1447,23 @@ function renderModeBar(){
     </div>`;
   }
   if(canEditViewing()){
+    const editingOthers = !isOwnAccount(viewingAccount);
     return `<div class="mode-bar contribute">
-      <span>✍️ Editing <b>${escHtml(accName(viewingAccount))}</b> — your taps sync to everyone viewing this gallery.</span>
-      <button class="chip add" data-action="start-contributing">+ Add another account</button>
+      <span>✍️ Editing <b>${escHtml(accName(viewingAccount))}</b>${editingOthers ? ' <i>(not your account)</i>' : ''} , your taps sync to everyone viewing this gallery.</span>
+      ${editingOthers
+        ? `<button class="chip add" data-action="stop-editing-others">Done editing</button>`
+        : `<button class="chip add" data-action="start-contributing">+ Add another account</button>`}
+    </div>`;
+  }
+  if(viewingAccount && currentUid){
+    const locked = accountLocked(viewingAccount);
+    return `<div class="mode-bar">
+      <span>👀 ${locked ? "Pre-established account" : "This isn't one of your accounts. Read-only."}</span>
+      <button class="chip" data-action="edit-other-account">Edit this binder</button>
     </div>`;
   }
   return `<div class="mode-bar">
-    <span>👀 ${settings.myAccounts.length ? "This isn't one of your accounts — read-only." : "You're browsing the gallery in view-only mode."}</span>
+    <span>👀 ${settings.myAccounts.length ? "This isn't one of your accounts. read-only." : "You're browsing the gallery in view-only mode."}</span>
     <button class="chip" data-action="start-contributing">+ Add my account</button>
   </div>`;
 }
@@ -1455,7 +1480,7 @@ function accountTradesAvailableCount(slug){
   return eligibleTradePartners(slug).length;
 }
 function sortedAccountList(){
-  const list = accountsMeta.list.slice();
+  const list = (filterApOnly ? accountsMeta.list.filter(inAP) : accountsMeta.list).slice();
   if(accountSortMode==="name"){
     list.sort((a,b)=>a.name.localeCompare(b.name));
   } else if(accountSortMode==="collected"){
@@ -1474,7 +1499,8 @@ function renderAccountBar(){
         <input type="text" class="chip-input" id="account-name-input" value="${escAttr(a.name)}" maxlength="24" autocomplete="off">
       </span>`;
     }
-    const canManage = isAdmin() || (!a.locked && a.ownerUid === currentUid);
+    const canManage = isAdmin() || (!a.locked && a.ownerUid === currentUid); // rename / delete — stays owner-or-admin
+    const canToggleClan = !!currentUid; // AP status — open to anyone signed in, locked or not
     const clanKey = clanOf(a);
     const otherClan = clanKey !== "AP";
     let statHtml = "";
@@ -1486,35 +1512,36 @@ function renderAccountBar(){
     }
     return `
     <button class="chip ${a.slug===viewingAccount?'active':''} ${otherClan?'chip-other-clan':''}" data-action="select-account" data-account="${escAttr(a.slug)}">
-      <span class="chip-badge" ${canManage?`data-action="cycle-clan-badge" data-account="${escAttr(a.slug)}"`:''} title="${canManage?`Clan: ${clanKey} — tap to switch`:`Clan: ${clanKey}`}">
-        <span class="chip-badge-tag">(${clanKey})</span>
-        <img src="${CLAN_BADGES[clanKey]}" alt="${clanKey}">
+      <span class="chip-badge" ${canToggleClan?`data-action="cycle-clan-badge" data-account="${escAttr(a.slug)}"`:''} title="${canToggleClan?(otherClan?"Not in AP yet — tap once they rejoin":"In AP — tap if they've left"):CLAN_BADGE_LABEL[clanKey]}">
+        <span class="chip-badge-tag">${CLAN_BADGE_LABEL[clanKey]}</span>
+        <img src="${CLAN_BADGES[clanKey]}" alt="${CLAN_BADGE_LABEL[clanKey]}">
       </span>
       <span class="chip-info">
         <span class="chip-name">${escHtml(a.name)}</span>
         ${statHtml}
       </span>
-      ${a.locked ? `<span class="chip-lock" title="Pre-established account — admin can manage this account">🔒</span>` : ''}
+      ${a.locked ? `<span class="chip-lock" title="Pre-established account — anyone can edit its binder; only admin can rename or remove it">🔒</span>` : ''}
       ${canManage ? `<span class="chip-pencil" data-action="edit-account-name" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Rename account" : "Rename your account"}">✎</span>` : ''}
       ${canManage ? `<span class="chip-x" data-action="delete-account" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Delete account" : "Remove your account"}">✕</span>` : ''}
     </button>`;
   }).join("");
-  const canManageAny = accountsMeta.list.some(a => isAdmin() || (!a.locked && a.ownerUid === currentUid));
   return `
   <div class="account-panel">
     <div class="account-panel-head">
       <span class="label">Accounts<span class="account-count">${accountsMeta.list.length}</span></span>
-      ${accountsMeta.list.length > 1 ? `
       <div class="account-sort">
+        <button type="button" class="sort-btn${filterApOnly?' active':''}" data-action="toggle-ap-filter">Only in AP</button>
+        ${accountsMeta.list.length > 1 ? `
         <span class="sort-label">Sort:</span>
         ${ACCOUNT_SORT_OPTIONS.map(([val,label])=>`<button type="button" class="sort-btn${accountSortMode===val?' active':''}" data-action="sort-accounts" data-sort="${val}">${label}</button>`).join("")}
-      </div>` : ''}
+        ` : ''}
+      </div>
     </div>
     <div class="account-grid">
-      ${chips || `<span style="color:var(--ink-faint);font-size:12.5px;">No accounts yet — be the first to add one.</span>`}
+      ${chips || `<span style="color:var(--ink-faint);font-size:12.5px;">${filterApOnly ? 'No AP accounts to show. try turning off "Only in AP".' : 'No accounts yet. be the first to add one.'}</span>`}
     </div>
   </div>
-  ${canManageAny ? `<p class="badge-hint">💡 Tap the clan badge to cycle (AP) → (SL) → (MF).</p>` : ''}`;
+  <p class="badge-hint">💡 Tap an account's badge to mark it in AP / not in AP accounts can't trade until switched back.</p>`;
 }
 
 function focusAccountInput(){
@@ -1777,7 +1804,7 @@ function computeSwapCategories(acct, partnerSlug){
 // duplicate acct needs, in a category where acct also holds a duplicate they need.
 function eligibleTradePartners(acct){
   if(!acct) return [];
-  return accountsMeta.list.filter(a => a.slug!==acct && computeSwapCategories(acct, a.slug).length>0);
+  return accountsMeta.list.filter(a => a.slug!==acct && inAP(a) && computeSwapCategories(acct, a.slug).length>0);
 }
 
 // A card acct could give away only exists in limited supply (owned count - 1 kept copy).
@@ -1809,6 +1836,14 @@ function renderTradeView(){
     return `
     <div class="panel-box">
       <p style="margin:0;">Select an account above${accountsMeta.list.length<2? ', and add at least one more account,':''} to see trades relevant to it.</p>
+    </div>`;
+  }
+
+  const acctObj = accountBySlug(acct);
+  if(!inAP(acctObj)){
+    return `
+    <div class="panel-box">
+      <p style="margin:0;"><b>${escHtml(accName(acct))}</b> isn't marked as in AP yet, so trading is locked. Tap the account's badge above once they've rejoined AP.</p>
     </div>`;
   }
 
@@ -2119,6 +2154,9 @@ function onClick(e){
   if(action==="set-view"){ currentView = el.dataset.view; render(); return; }
   if(action==="set-category"){ scrollToCategory(el.dataset.cat); return; }
   if(action==="sort-accounts"){ accountSortMode = el.dataset.sort; render(); return; }
+  if(action==="toggle-ap-filter"){ filterApOnly = !filterApOnly; render(); return; }
+  if(action==="edit-other-account"){ editOverride = true; render(); return; }
+  if(action==="stop-editing-others"){ editOverride = false; render(); return; }
 
   if(action==="start-contributing"){ becomingContributor = true; render(); return; }
   if(action==="cancel-contributor"){ becomingContributor = false; render(); return; }
@@ -2132,14 +2170,14 @@ function onClick(e){
     return;
   }
 
-  if(action==="select-account"){ viewingAccount = el.dataset.account; recomputeSettings(); render(); return; }
+  if(action==="select-account"){ viewingAccount = el.dataset.account; editOverride = false; recomputeSettings(); render(); return; }
   if(action==="cycle-clan-badge"){
     e.stopPropagation();
     const slug = el.dataset.account;
     const target = accountBySlug(slug);
     if(!target) return;
-    const canManage = isAdmin() || (!target.locked && target.ownerUid === currentUid);
-    if(!canManage) return;
+    const canToggleClan = !!currentUid;
+    if(!canToggleClan) return;
     const cur = clanOf(target);
     const next = CLAN_BADGE_ORDER[(CLAN_BADGE_ORDER.indexOf(cur)+1) % CLAN_BADGE_ORDER.length];
     updateDoc(doc(db,"accounts",slug), { clan: next }).catch(err=>{
