@@ -355,7 +355,7 @@ header.app-head::before{
 }
 .overall-bar .updated-edit-group{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .overall-bar .edit-binder-btn{
-  font-size:11px;color:#ff8a5c;border:1px solid rgba(255,106,61,.45);background:rgba(255,106,61,.08);
+  font-size:11px;color:#ff8a5c;border:1.5px dotted #ff6a3d;background:rgba(255,106,61,.08);
   padding:4px 10px;border-radius:999px;white-space:nowrap;cursor:pointer;font-family:inherit;font-weight:600;
 }
 .overall-bar .edit-binder-btn:hover{border-color:#ff6a3d;color:#ff6a3d;background:rgba(255,106,61,.14);}
@@ -1840,7 +1840,7 @@ function renderBinderView(){
     </div>
     <span class="updated-edit-group">
       ${!editable ? `<span class="readonly-tag">Not your account</span>
-      <button type="button" class="edit-binder-btn" data-action="edit-other-account">Edit this binder</button>` : ''}
+      <button type="button" class="edit-binder-btn" data-action="edit-other-account" title="You normally can't edit someone else's binder. Use this only if something's wrong and needs fixing right away, like a miscount you noticed or an account owner who's unreachable.">⚠ Override and edit this binder</button>` : ''}
     </span>
   </div>
   ${renderDupSummary(acct)}
