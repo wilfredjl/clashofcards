@@ -313,9 +313,15 @@ header.app-head::before{
   padding:4px 10px;border-radius:999px;white-space:nowrap;
 }
 .overall-bar .last-updated-tag{
-  margin-left:auto;font-size:11px;color:var(--ink-faint);border:1px solid var(--line);
+  font-size:11px;color:var(--ink-faint);border:1px solid var(--line);
   padding:4px 10px;border-radius:999px;white-space:nowrap;font-family:'JetBrains Mono',monospace;
 }
+.overall-bar .updated-edit-group{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.overall-bar .edit-binder-btn{
+  font-size:11px;color:#ff8a5c;border:1px solid rgba(255,106,61,.45);background:rgba(255,106,61,.08);
+  padding:4px 10px;border-radius:999px;white-space:nowrap;cursor:pointer;font-family:inherit;font-weight:600;
+}
+.overall-bar .edit-binder-btn:hover{border-color:#ff6a3d;color:#ff6a3d;background:rgba(255,106,61,.14);}
 
 /* ---------- Binder grid (ring holes) ---------- */
 .binder-page{
@@ -1175,7 +1181,7 @@ async function createOrClaimAccount(name){
   const slug = slugify(name);
   const existing = accountBySlug(slug);
   if(existing && existing.locked){
-    alert(`"${existing.name}" is a protected, pre-established account and can't be claimed.`);
+    alert(`"${existing.name}" is a locked account and can't be claimed.`);
     return false;
   }
   if(existing && existing.ownerUid && existing.ownerUid !== currentUid){
@@ -1456,14 +1462,13 @@ function renderModeBar(){
     </div>`;
   }
   if(viewingAccount && currentUid){
-    const locked = accountLocked(viewingAccount);
     return `<div class="mode-bar">
-      <span>👀 ${locked ? "Pre-established account" : "This isn't one of your accounts. Read-only."}</span>
-      <button class="chip" data-action="edit-other-account">Edit this binder</button>
+      <span>👀 This isn't one of your accounts.</span>
+      <button class="chip" data-action="start-contributing">+ ${settings.myAccounts.length ? "Add another account" : "Add my account"}</button>
     </div>`;
   }
   return `<div class="mode-bar">
-    <span>👀 ${settings.myAccounts.length ? "This isn't one of your accounts. read-only." : "You're browsing the gallery in view-only mode."}</span>
+    <span>👀 ${settings.myAccounts.length ? "This isn't one of your accounts." : "You're browsing the gallery in view-only mode."}</span>
     <button class="chip" data-action="start-contributing">+ Add my account</button>
   </div>`;
 }
@@ -1520,7 +1525,7 @@ function renderAccountBar(){
         <span class="chip-name">${escHtml(a.name)}</span>
         ${statHtml}
       </span>
-      ${a.locked ? `<span class="chip-lock" title="Pre-established account — anyone can edit its binder; only admin can rename or remove it">🔒</span>` : ''}
+      ${a.locked ? `<span class="chip-lock" title="Locked — anyone can edit its binder; only admin can rename or remove it">🔒</span>` : ''}
       ${canManage ? `<span class="chip-pencil" data-action="edit-account-name" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Rename account" : "Rename your account"}">✎</span>` : ''}
       ${canManage ? `<span class="chip-x" data-action="delete-account" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Delete account" : "Remove your account"}">✕</span>` : ''}
     </button>`;
@@ -1610,8 +1615,11 @@ function renderBinderView(){
   <div class="overall-bar" style="--pct:${pct}">
     <div class="ring"><span>${pct}%</span></div>
     <div class="txt"><b>${escHtml(accName(acct))}</b> has collected <b>${ownedTotal}</b> of <b>${all.length}</b> tradeable cards.</div>
-    <span class="last-updated-tag" title="Reflects the last time a card count changed for this account">${escHtml(lastUpdatedText(acct))}</span>
-    ${!editable ? `<span class="readonly-tag">Read-only${accountLocked(acct)?' · pre-established':''}</span>` : ''}
+    <span class="updated-edit-group">
+      <span class="last-updated-tag" title="Reflects the last time a card count changed for this account">${escHtml(lastUpdatedText(acct))}</span>
+      ${!editable ? `<span class="readonly-tag">Not your account</span>
+      <button type="button" class="edit-binder-btn" data-action="edit-other-account">Edit this binder</button>` : ''}
+    </span>
   </div>
   <div class="cat-row">${catCards}</div>
   <div class="binder-page">
