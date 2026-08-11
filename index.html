@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Card Binder — Clash of Cards Tracker</title>
+<title>Card Binder: Clash of Cards Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Luckiest+Guy&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -128,11 +128,34 @@ header.app-head::before{
   background:var(--panel);color:var(--ink-dim);border:1px solid var(--line);border-radius:8px;
   padding:5.5px 10px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;outline:none;
   transition:border-color .15s,color .15s,background .15s;
+  display:inline-flex;align-items:center;gap:5px;
 }
 .account-sort .sort-btn:hover{border-color:var(--gold);color:var(--ink);}
 .account-sort .sort-btn.active{
   background:rgba(232,184,75,.14);border-color:var(--gold);color:var(--gold);
 }
+.account-sort .sort-icon{font-size:11px;line-height:1;}
+/* "Only in AP" is a toggle, not a sort choice, so it's styled as a real switch and
+   set apart from the sort-mode buttons with a divider. */
+.sort-divider{width:1px;height:16px;background:var(--line);margin:0 3px;flex:none;}
+.ap-toggle-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  background:transparent;border:1px solid var(--line);border-radius:999px;
+  padding:4px 10px 4px 5px;font-family:inherit;font-size:12px;font-weight:600;
+  color:var(--ink-faint);cursor:pointer;outline:none;transition:.15s;
+}
+.ap-toggle-btn:hover{border-color:var(--gold);color:var(--ink);}
+.ap-toggle-track{
+  width:26px;height:15px;border-radius:999px;background:var(--slot-empty);
+  border:1px solid var(--line);position:relative;flex:none;transition:.15s;
+}
+.ap-toggle-thumb{
+  position:absolute;top:1px;left:1px;width:11px;height:11px;border-radius:50%;
+  background:var(--ink-faint);transition:.18s;
+}
+.ap-toggle-btn.active{color:var(--gold);border-color:var(--gold);background:rgba(232,184,75,.1);}
+.ap-toggle-btn.active .ap-toggle-track{background:rgba(232,184,75,.3);border-color:var(--gold);}
+.ap-toggle-btn.active .ap-toggle-thumb{background:var(--gold);transform:translateX(11px);}
 .account-count{
   display:inline-flex;align-items:center;justify-content:center;
   min-width:22px;height:22px;padding:0 7px;margin-left:8px;
@@ -157,18 +180,25 @@ header.app-head::before{
    action chips elsewhere in the interface. */
 .account-grid > .chip{
   border-radius:8px;
-  padding:8px 12px;
+  padding:9px 12px;
   border-width:1px;
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   width:100%;
   min-width:0;
+  white-space:normal;
 }
+.account-grid > .chip .chip-badge{margin-top:1px;}
+/* Give chips a little more breathing room now names wrap instead of truncating. */
+.account-grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr));}
 .chip-info{display:flex;flex-direction:column;align-items:flex-start;flex:1;min-width:0;line-height:1.2;text-align:left;}
-.chip-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* Names read out in full now — no more mid-word ellipsis truncation. */
+.chip-name{max-width:100%;white-space:normal;overflow-wrap:break-word;word-break:break-word;}
 .chip-stat{font-size:9.5px;font-weight:700;color:var(--ink-faint);margin-top:1px;white-space:nowrap;}
 .chip.active .chip-stat{color:#241a05;opacity:.8;}
 .chip.chip-other-clan:not(.active) .chip-stat{color:var(--ink-faint);}
+.chip-updated{font-size:9.5px;font-weight:700;margin-top:2px;white-space:nowrap;font-family:'JetBrains Mono',monospace;}
+.chip.active .chip-updated{color:#241a05!important;opacity:.75;}
 .chip-badge{
   display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
   flex:none;margin-right:8px;line-height:1;border-radius:6px;padding:2px;
@@ -201,12 +231,11 @@ header.app-head::before{
 .chip.chip-other-clan:not(.active) .chip-badge-tag{color:var(--super);}
 .chip.add{background:transparent;border-style:dashed;color:var(--ink-faint);}
 .chip.add:hover{color:var(--gold);border-color:var(--gold);}
-.chip-x{margin-left:8px;opacity:.55;font-weight:400;}
+.chip-x{margin-left:8px;opacity:.55;font-weight:400;margin-top:1px;}
 .chip-x:hover{opacity:1;}
-.chip-pencil{margin-left:8px;opacity:.5;font-weight:400;font-size:12px;display:inline-block;}
+.chip-pencil{margin-left:8px;opacity:.5;font-weight:400;font-size:12px;display:inline-block;margin-top:1px;}
 .chip-pencil:hover{opacity:1;}
-.chip-lock{margin-left:7px;opacity:.6;font-size:11px;}
-.chip.active .chip-pencil,.chip.active .chip-x,.chip.active .chip-lock{opacity:.7;}
+.chip.active .chip-pencil,.chip.active .chip-x{opacity:.7;}
 .chip.active .chip-pencil:hover,.chip.active .chip-x:hover{opacity:1;}
 .chip-edit-wrap{display:inline-flex;align-items:center;}
 .chip-input{
@@ -231,11 +260,11 @@ header.app-head::before{
   position:relative;
   padding:11px 18px 10px;
   margin:0;
-  border:1px solid transparent;
+  border:1px solid var(--line);
   border-bottom:none;
   border-radius:9px 9px 0 0;
-  background:transparent;
-  color:var(--ink-faint);
+  background:var(--bg-elevated);
+  color:var(--ink-dim);
   font-weight:700;
   font-size:13.5px;
   cursor:pointer;
@@ -244,11 +273,11 @@ header.app-head::before{
 }
 .view-tab:hover{
   color:var(--ink);
-  background:var(--bg-elevated);
+  background:var(--panel);
 }
 .view-tab.active{
-  color:var(--ink);
-  background:var(--bg-elevated);
+  color:var(--gold);
+  background:var(--panel);
   border-color:var(--line);
   margin-bottom:-1px;
   padding-top:12px;
@@ -263,8 +292,6 @@ header.app-head::before{
   background:var(--gold);
   border-radius:2px 2px 0 0;
 }
-.view-tab:hover{color:var(--ink-dim);}
-.view-tab.active{background:var(--panel);color:var(--gold);border-color:var(--line);}
 
 .view{
   display:none;
@@ -282,6 +309,7 @@ header.app-head::before{
 /* ---------- Category tabs + progress ---------- */
 .cat-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
 .cat-card{
+  position:relative;
   flex:1 1 220px;border-radius:14px;padding:14px 16px;border:1px solid var(--line);
   background:var(--panel);cursor:pointer;transition:.15s;
 }
@@ -292,6 +320,12 @@ header.app-head::before{
 .cat-progress-fill{height:100%;border-radius:4px;}
 .cat-count{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink-dim);margin-top:6px;}
 .cat-card.selected{outline:2px solid var(--gold);}
+/* Small tick badge for a fully-completed category (e.g. 19/19 elixir cards). */
+.cat-complete-tick{
+  position:absolute;right:8px;bottom:8px;width:18px;height:18px;border-radius:50%;
+  background:#3ddc84;color:#0f3320;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;line-height:1;box-shadow:0 0 0 2px var(--panel);
+}
 
 .overall-bar{
   display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--bg-elevated);
@@ -312,9 +346,12 @@ header.app-head::before{
   font-size:11px;color:var(--ink-faint);border:1px solid var(--line);
   padding:4px 10px;border-radius:999px;white-space:nowrap;
 }
+.overall-bar .txt-wrap{display:flex;flex-direction:column;gap:6px;flex:1 1 auto;min-width:0;}
 .overall-bar .last-updated-tag{
-  font-size:11px;color:var(--ink-faint);border:1px solid var(--line);
-  padding:4px 10px;border-radius:999px;white-space:nowrap;font-family:'JetBrains Mono',monospace;
+  align-self:flex-start;
+  font-size:12px;font-weight:700;color:var(--gold);border:1px solid var(--gold);
+  padding:5px 11px;border-radius:999px;white-space:nowrap;font-family:'JetBrains Mono',monospace;
+  background:rgba(232,184,75,.12);display:inline-flex;align-items:center;gap:6px;
 }
 .overall-bar .updated-edit-group{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .overall-bar .edit-binder-btn{
@@ -414,7 +451,7 @@ header.app-head::before{
 .readonly-count{font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:none;letter-spacing:0;color:var(--ink-dim);}
 
 /* ---------- Matrix view ---------- */
-.matrix-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--bg-elevated);}
+.matrix-wrap{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:14px;background:var(--bg-elevated);}
 table.matrix{border-collapse:collapse;width:100%;font-size:12.5px;}
 table.matrix th, table.matrix td{padding:7px 10px;text-align:center;white-space:nowrap;}
 table.matrix thead th{
@@ -432,6 +469,12 @@ table.matrix td.cell{font-family:'JetBrains Mono',monospace;}
 .cell-0{color:var(--ink-faint);}
 .cell-1{color:var(--ink);}
 .cell-dup{color:var(--gold);font-weight:700;background:rgba(232,184,75,.08);border-radius:6px;}
+/* Clicking a troop row highlights it all the way across, like selecting a row in a spreadsheet. */
+table.matrix tbody tr:not(.cat-sep){cursor:pointer;}
+table.matrix tbody tr:not(.cat-sep):hover td{background:rgba(255,255,255,.04);}
+table.matrix tbody tr.row-selected td{background:rgba(232,184,75,.12);border-top:2px solid var(--gold);border-bottom:2px solid var(--gold);}
+table.matrix tbody tr.row-selected td.rowlabel{background:rgba(232,184,75,.2);}
+table.matrix tbody tr.row-selected td.cell-dup{background:rgba(232,184,75,.28);}
 
 .trade-arrow{color:var(--gold);font-size:17px;line-height:1;}
 
@@ -599,11 +642,21 @@ table.matrix td.cell{font-family:'JetBrains Mono',monospace;}
 .log-time{font-size:11px;color:var(--ink-faint);white-space:nowrap;}
 .empty-note{color:var(--ink-faint);font-size:13px;padding:10px 2px;}
 
+/* ---------- Global activity log ---------- */
+.activity-list{display:flex;flex-direction:column;max-height:380px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;}
+.activity-item{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:8px 12px;border-bottom:1px solid var(--line);font-size:12.5px;
+}
+.activity-item:last-child{border-bottom:none;}
+.activity-item:nth-child(odd){background:var(--panel);}
+.activity-text{color:var(--ink-dim);}
+.activity-time{color:var(--ink-faint);font-size:11px;white-space:nowrap;flex:none;}
+
 /* ---------- Import / export & editor ---------- */
 .panel-box{background:var(--bg-elevated);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;}
 .panel-box h3{margin:0 0 8px;color:var(--gold);font-size:15px;}
-.panel-box p{color:var(--ink-dim);font-size:13px;line-height:1.5;}
-textarea{
+.panel-box p{color:var(--ink-dim);font-size:13px;line-height:1.5;}textarea{
   width:100%;min-height:110px;background:var(--panel);color:var(--ink);border:1px solid var(--line);
   border-radius:10px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:12.5px;resize:vertical;
 }
@@ -625,6 +678,77 @@ textarea{
   background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;
   padding:7px 9px;font-family:inherit;font-size:13px;width:100%;
 }
+
+/* ---------- Search view ---------- */
+.search-input{
+  width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  border-radius:10px;padding:11px 14px;font-family:inherit;font-size:14.5px;font-weight:600;
+  outline:none;margin-top:4px;transition:border-color .15s,box-shadow .15s;
+}
+.search-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-glow);}
+.search-empty{
+  color:var(--ink-faint);font-size:13px;padding:22px 4px;text-align:center;line-height:1.5;
+}
+.search-results{display:flex;flex-direction:column;gap:10px;}
+.search-result-card{
+  background:var(--bg-elevated);border:1px solid var(--line);border-radius:14px;padding:12px 14px;
+}
+.search-result-head{display:flex;align-items:center;gap:12px;}
+.search-result-art{
+  width:40px;height:40px;flex:none;border-radius:9px;
+  background:
+    var(--cardimg,none) center/contain no-repeat,
+    linear-gradient(160deg,var(--catbg),var(--panel));
+  border:1px solid var(--catcolor);
+}
+.search-result-meta{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
+.search-result-name{font-weight:700;font-size:14px;color:var(--ink);}
+.search-result-cat{font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;gap:5px;}
+.search-owner-count{
+  font-size:10.5px;color:var(--ink-faint);font-family:'JetBrains Mono',monospace;
+  border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap;flex:none;
+}
+.search-account-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;}
+.search-account-pill{
+  background:var(--panel);color:var(--ink-dim);border:1px solid var(--line);border-radius:999px;
+  padding:6px 12px;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;
+  transition:.15s;
+}
+.search-account-pill:hover{border-color:var(--gold);color:var(--ink);background:rgba(232,184,75,.1);}
+.search-account-pill b{color:var(--gold);font-weight:800;}
+.search-no-owners{color:var(--ink-faint);font-size:12px;margin-top:8px;display:block;}
+
+/* Momentary highlight on a card slot after jumping to it from search or a dup chip. */
+@keyframes search-jump-pulse{
+  0%,100%{box-shadow:0 0 0 0 var(--gold-glow);}
+  50%{box-shadow:0 0 0 6px var(--gold-glow);}
+}
+.card-slot.search-highlight{
+  outline:2px solid var(--gold);
+  animation:search-jump-pulse 1.6s ease-in-out;
+}
+
+/* ---------- Duplicates summary (top of each binder) ---------- */
+.dup-summary{
+  background:var(--bg-elevated);border:1px solid var(--line);border-radius:12px;
+  padding:11px 14px;margin-bottom:14px;
+}
+.dup-summary.empty{
+  display:flex;align-items:center;gap:8px;color:var(--ink-faint);font-size:12.5px;
+}
+.dup-summary-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-dim);font-weight:700;}
+.dup-summary-count{
+  margin-left:8px;font-size:11px;text-transform:none;letter-spacing:normal;font-weight:600;
+  color:var(--gold);font-family:'JetBrains Mono',monospace;
+}
+.dup-chip-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;}
+.dup-chip{
+  background:var(--panel);border:1px solid var(--line);border-radius:999px;
+  padding:5px 11px;font-size:12px;font-weight:600;color:var(--ink-dim);cursor:pointer;transition:.15s;
+}
+.dup-chip:hover{border-color:var(--gold);color:var(--ink);background:rgba(232,184,75,.1);}
+.dup-chip b{color:var(--gold);}
+
 /* ---------- Mobile layout ---------- */
 @media(max-width:640px){
   .wrap{max-width:none;padding:12px 10px 56px;}
@@ -694,11 +818,13 @@ textarea{
   }
   .overall-bar .ring{width:48px;height:48px;font-size:11px;}
   .overall-bar .ring::before{inset:4px;}
-  .overall-bar .txt{font-size:11.5px;line-height:1.35;flex:1 1 150px;min-width:0;}
+  .overall-bar .txt-wrap{flex:1 1 150px;min-width:0;}
+  .overall-bar .txt{font-size:11.5px;line-height:1.35;min-width:0;}
   .overall-bar .readonly-tag{font-size:9px;padding:3px 7px;white-space:normal;max-width:100%;}
-  .overall-bar .last-updated-tag{font-size:9px;padding:3px 7px;margin-left:auto;white-space:normal;max-width:100%;}
-  .overall-bar .readonly-tag,
-  .overall-bar .last-updated-tag{flex:none;}
+  .overall-bar .last-updated-tag{font-size:10px;padding:4px 8px;white-space:normal;max-width:100%;align-self:flex-start;}
+  .overall-bar .readonly-tag{flex:none;}
+  .account-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));}
+  .chip-updated{font-size:8.5px;}
 
   .cat-row{gap:7px;margin-bottom:12px;}
   .cat-card{flex:1 1 calc(50% - 4px);min-width:0;padding:10px 11px;border-radius:11px;}
@@ -706,6 +832,13 @@ textarea{
   .cat-dot{width:8px;height:8px;}
   .cat-progress-track{height:5px;}
   .cat-count{font-size:9.5px;margin-top:5px;}
+
+  .dup-summary{padding:9px 11px;margin-bottom:10px;}
+  .dup-chip{font-size:11px;padding:4px 9px;}
+  .search-result-head{gap:9px;}
+  .search-result-art{width:34px;height:34px;}
+  .search-owner-count{display:none;}
+  .search-account-pill{font-size:12px;padding:5px 10px;}
 
   .view.active{
     padding:12px;
@@ -978,6 +1111,7 @@ const rosterRef    = doc(db, "meta", "roster");
 const accountsCol  = collection(db, "accounts");
 const collectionsCol = collection(db, "collections");
 const tradelogCol  = collection(db, "tradelog");
+const activityCol  = collection(db, "activity");
 
 const TUTORIAL_KEY = "coc-tutorial-seen-v2";
 const CATEGORIES = [
@@ -1047,6 +1181,7 @@ let settings = { myAccount: null, myAccounts: [] }; // derived locally from acco
 
 let currentUid = null;
 let currentView = "binder";
+let searchQuery = "";
 let currentCategory = "elixir";
 let viewingAccount = null;   // slug
 let editingAccount = null;   // slug
@@ -1054,6 +1189,8 @@ let becomingContributor = false;
 let accountSortMode = "name"; // "name" | "collected" | "trades"
 let filterApOnly = false;    // account-grid + trade-finder filter: hide/exclude non-AP accounts
 let editOverride = false;    // when true, lets you edit the *viewed* account even if it isn't yours (resets on account switch)
+let selectedMatrixRow = null; // card id currently highlighted in the Collection Matrix, or null
+let activityLog = { entries: [] }; // { entries:[{id, text, ts}] } — a running log of every change made in the tracker
 
 // Tutorial state
 let tutorialActive = false;
@@ -1076,12 +1213,31 @@ function timeAgo(ts){
   const h = Math.floor(m/60); if(h<24) return h+"h ago";
   return Math.floor(h/24)+"d ago";
 }
+function fullTimestamp(ts){
+  return new Date(ts).toLocaleString(undefined, { dateStyle:"medium", timeStyle:"short" });
+}
 function swapKey(from,to,category){ return `${from}::${to}::${category}`; }
 function avatarInitial(name){ const s = String(name||"?").trim(); return s ? s[0].toUpperCase() : "?"; }
 function lastUpdatedText(slug){
   const ms = collectionMeta[slug];
   if(!ms) return "Not updated yet";
   return "Last updated " + timeAgo(ms);
+}
+// Colour an account's "last updated" readout from green (just now) to red (24h+ old),
+// so staleness is visible at a glance without reading the text.
+function updatedRecencyColor(ms){
+  if(!ms) return "var(--ink-faint)";
+  const hours = Math.min((Date.now()-ms)/3600000, 24);
+  const t = hours/24; // 0 = fresh, 1 = a day or more old
+  const from=[61,220,132], to=[255,92,92]; // green -> red
+  const c = from.map((f,i)=>Math.round(f+(to[i]-f)*t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function chipUpdatedHtml(slug){
+  const ms = collectionMeta[slug];
+  const color = updatedRecencyColor(ms);
+  const text = ms ? "Last updated " + timeAgo(ms) : "Not updated yet";
+  return `<span class="chip-updated" style="color:${color}">${escHtml(text)}</span>`;
 }
 
 /* ---------------- Derived data ---------------- */
@@ -1132,17 +1288,31 @@ function flashStatus(msg){
   statusTimer = setTimeout(()=>{ el.classList.remove("show"); }, 2600);
 }
 
+/* ---------------- Global activity log ---------------- */
+// A running record of every change made in the tracker, across every account,
+// shown beneath Trade History so anyone can see what happened and when.
+async function logActivity(text){
+  try{
+    await addDoc(activityCol, { text, ts: Date.now() });
+  }catch(e){
+    console.error("activity log failed", e);
+  }
+}
+
 /* ---------------- Roster (shared card list) writes ---------------- */
+// mutator may return a short string describing the change, which gets written
+// to the global activity log once the save succeeds.
 async function withFreshRoster(mutator){
   try{
     const snap = await getDoc(rosterRef);
     const latest = snap.exists() ? snap.data() : { cards: DEFAULT_CARDS.map(c=>({...c})), schemaVersion: SCHEMA_VERSION };
-    mutator(latest);
+    const note = mutator(latest);
     await setDoc(rosterRef, latest);
     roster = latest;
+    if(note) logActivity(note);
   }catch(e){
     console.error("roster write failed", e);
-    flashStatus("⚠ Couldn't save — you may need to add your own account first, or check your connection.");
+    flashStatus("Couldn't save. You may need to add your own account first, or check your connection.");
   }
 }
 
@@ -1152,16 +1322,20 @@ async function bumpCount(slug, cardId, delta){
   collections[slug][cardId] = Math.max(0, (collections[slug][cardId]||0) + delta);
   render();
   try{
+    let resultNext = null;
     await runTransaction(db, async (tx)=>{
       const ref = doc(db,"collections",slug);
       const snap = await tx.get(ref);
       const data = snap.exists() ? snap.data() : {};
       const next = Math.max(0, (data[cardId]||0) + delta);
+      resultNext = next;
       tx.set(ref, { [cardId]: next, _updatedAt: serverTimestamp() }, { merge:true });
     });
+    const card = roster.cards.find(c=>c.id===cardId);
+    if(card) logActivity(`${accName(slug)} ${delta>0?'added a':'removed a'} ${card.name}, now has ${resultNext}`);
   }catch(e){
     console.error("bumpCount failed", e);
-    flashStatus("⚠ Sync failed — your change may not be visible to others yet.");
+    flashStatus("Sync failed. Your change may not be visible to others yet.");
   }
 }
 
@@ -1170,9 +1344,10 @@ async function bulkSetCollection(slug, pairs){
   pairs.forEach(([id,n])=>{ patch[id] = Math.max(0,n); });
   try{
     await setDoc(doc(db,"collections",slug), patch, { merge:true });
+    logActivity(`${accName(slug)} bulk-updated ${pairs.length} card count${pairs.length===1?'':'s'}`);
   }catch(e){
     console.error("bulk set failed", e);
-    flashStatus("⚠ Bulk update failed — check your connection.");
+    flashStatus("Bulk update failed. Check your connection.");
   }
 }
 
@@ -1192,11 +1367,12 @@ async function createOrClaimAccount(name){
     if(!existing){
       await setDoc(doc(db,"accounts",slug), { slug, name, locked:false, clan:"AP", ownerUid: currentUid, createdAt: serverTimestamp() });
       await setDoc(doc(db,"collections",slug), {});
+      logActivity(`${name} joined the gallery`);
     }
     return slug;
   }catch(e){
     console.error("create account failed", e);
-    flashStatus("⚠ Couldn't add that account — check your Firebase setup and security rules.");
+    flashStatus("Couldn't add that account. Check your Firebase setup and security rules.");
     return false;
   }
 }
@@ -1207,23 +1383,27 @@ async function renameAccount(slug, newName){
   if(account.locked && !isAdmin()) return false;
   if(!account.locked && account.ownerUid !== currentUid && !isAdmin()) return false;
   try{
+    const oldName = account.name;
     await updateDoc(doc(db,"accounts",slug), { name: newName });
+    if(oldName !== newName) logActivity(`${oldName} was renamed to ${newName}`);
     return true;
   }catch(e){
     console.error("rename failed", e);
-    flashStatus(isAdmin() ? "⚠ Admin rename failed — check your Firestore rules." : "⚠ Rename failed — you can only rename an account you own.");
+    flashStatus(isAdmin() ? "Admin rename failed. Check your Firestore rules." : "Rename failed. You can only rename an account you own.");
     return false;
   }
 }
 
 async function deleteAccountAndCollection(slug){
+  const account = accountBySlug(slug);
   try{
     await deleteDoc(doc(db,"accounts",slug));
     await deleteDoc(doc(db,"collections",slug));
+    if(account) logActivity(`${account.name} was removed from the gallery`);
     return true;
   }catch(e){
     console.error("delete account failed", e);
-    flashStatus("⚠ Couldn't remove that account — you can only remove an account you own.");
+    flashStatus("Couldn't remove that account. You can only remove an account you own.");
     return false;
   }
 }
@@ -1248,7 +1428,7 @@ async function logSwapTrade(aSlug, bSlug, aGiveCardId, bGiveCardId){
     const aCount = (aSnap.exists() && aSnap.data()[aGiveCardId]) || 0;
     const bCount = (bSnap.exists() && bSnap.data()[bGiveCardId]) || 0;
     if(aCount < 2 || bCount < 2){
-      flashStatus("One of those duplicates isn't available anymore — someone traded it first.");
+      flashStatus("One of those duplicates isn't available anymore. Someone traded it first.");
       return;
     }
     await updateDoc(doc(db,"collections",aSlug), { [aGiveCardId]: increment(-1), [bGiveCardId]: increment(1), _updatedAt: serverTimestamp() });
@@ -1259,10 +1439,11 @@ async function logSwapTrade(aSlug, bSlug, aGiveCardId, bGiveCardId){
       bGivesCardId: bGiveCardId, bGivesCardName: bGiveCard.name,
       category: aGiveCard.category, ts: Date.now()
     });
-    flashStatus(`Logged: ${accName(aSlug)}'s ${aGiveCard.name} ⇄ ${accName(bSlug)}'s ${bGiveCard.name} — both binders updated.`);
+    logActivity(`${accName(aSlug)} traded ${aGiveCard.name} for ${accName(bSlug)}'s ${bGiveCard.name}`);
+    flashStatus(`Logged: ${accName(aSlug)}'s ${aGiveCard.name} for ${accName(bSlug)}'s ${bGiveCard.name}. Both binders updated.`);
   }catch(e){
     console.error("log swap trade failed", e);
-    flashStatus("⚠ Trade log failed — check your connection.");
+    flashStatus("Trade log failed. Check your connection.");
   }
 }
 
@@ -1274,21 +1455,23 @@ async function undoTrade(logId){
       // swap-format entry: reverse both sides of the exchange
       await updateDoc(doc(db,"collections",entry.aSlug), { [entry.aGivesCardId]: increment(1), [entry.bGivesCardId]: increment(-1), _updatedAt: serverTimestamp() });
       await updateDoc(doc(db,"collections",entry.bSlug), { [entry.bGivesCardId]: increment(1), [entry.aGivesCardId]: increment(-1), _updatedAt: serverTimestamp() });
+      logActivity(`Undid the trade between ${entry.aName} and ${entry.bName}`);
     } else {
       // legacy single-direction entry from an earlier version of the tracker
       await updateDoc(doc(db,"collections",entry.fromSlug), { [entry.cardId]: increment(1), _updatedAt: serverTimestamp() });
       await updateDoc(doc(db,"collections",entry.toSlug), { [entry.cardId]: increment(-1), _updatedAt: serverTimestamp() });
+      logActivity(`Undid the ${entry.cardName} transfer between ${entry.fromName} and ${entry.toName}`);
     }
     await deleteDoc(doc(db,"tradelog",logId));
     flashStatus("Trade undone for everyone.");
   }catch(e){
     console.error("undo trade failed", e);
-    flashStatus("⚠ Undo failed — check your connection.");
+    flashStatus("Undo failed. Check your connection.");
   }
 }
 
 /* ---------------- Real-time listeners ---------------- */
-let readyFlags = { roster:false, accounts:false, collections:false, tradelog:false };
+let readyFlags = { roster:false, accounts:false, collections:false, tradelog:false, activity:false };
 let firstRenderDone = false;
 function maybeRender(){
   lastSyncTs = Date.now();
@@ -1343,6 +1526,12 @@ function setupListeners(){
     readyFlags.tradelog = true;
     maybeRender();
   });
+
+  onSnapshot(query(activityCol, orderBy("ts","asc"), limit(500)), (snap)=>{
+    activityLog.entries = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    readyFlags.activity = true;
+    maybeRender();
+  });
 }
 
 /* ---------------- Boot ---------------- */
@@ -1355,7 +1544,7 @@ async function boot(){
     });
     signInAnonymously(auth).catch((err)=>{
       console.error("anonymous sign-in failed", err);
-      flashStatus("⚠ Couldn't connect to Firebase — check firebaseConfig in the setup guide.");
+      flashStatus("Couldn't connect to Firebase. Check firebaseConfig in the setup guide.");
       resolve();
     });
   });
@@ -1391,10 +1580,12 @@ function render(){
     <div class="view ${currentView==='matrix'?'active':''}" id="view-matrix">${renderMatrixView()}</div>
     <div class="view ${currentView==='trade'?'active':''}" id="view-trade">${renderTradeView()}</div>
     <div class="view ${currentView==='data'?'active':''}" id="view-data">${renderDataView()}</div>
+    <div class="view ${currentView==='search'?'active':''}" id="view-search">${renderSearchView()}</div>
   `;
   attachHandlers();
   if(becomingContributor) focusContributorInput();
   if(editingAccount) focusAccountInput();
+  if(currentView==='search') focusSearchInput();
 }
 
 function renderHeader(){
@@ -1438,7 +1629,7 @@ function renderSyncBar(){
 function renderModeBar(){
   if(isAdmin() && viewingAccount && accountLocked(viewingAccount)){
     return `<div class="mode-bar contribute">
-      <span>🔐 <b>Admin editing</b> ${escHtml(accName(viewingAccount))} — changes sync to everyone.</span>
+      <span>🔐 <b>Admin editing</b> ${escHtml(accName(viewingAccount))}. Changes sync to everyone.</span>
       <button class="chip add" data-action="exit-admin-edit">Exit admin edit</button>
     </div>`;
   }
@@ -1474,9 +1665,9 @@ function renderModeBar(){
 }
 
 const ACCOUNT_SORT_OPTIONS = [
-  ["name","Name"],
-  ["collected","Most cards collected"],
-  ["trades","Trades available"]
+  ["name","Name","🔤"],
+  ["collected","Most cards collected","📶"],
+  ["trades","Trades available","🔁"]
 ];
 function accountCardsCollected(slug){
   return activeCards().filter(c => getCount(slug,c.id) > 0).length;
@@ -1517,15 +1708,15 @@ function renderAccountBar(){
     }
     return `
     <button class="chip ${a.slug===viewingAccount?'active':''} ${otherClan?'chip-other-clan':''}" data-action="select-account" data-account="${escAttr(a.slug)}">
-      <span class="chip-badge" ${canToggleClan?`data-action="cycle-clan-badge" data-account="${escAttr(a.slug)}"`:''} title="${canToggleClan?(otherClan?"Not in AP yet — tap once they rejoin":"In AP — tap if they've left"):CLAN_BADGE_LABEL[clanKey]}">
+      <span class="chip-badge" ${canToggleClan?`data-action="cycle-clan-badge" data-account="${escAttr(a.slug)}"`:''} title="${canToggleClan?(otherClan?"Not in AP yet, tap once they rejoin":"In AP, tap if they've left"):CLAN_BADGE_LABEL[clanKey]}">
         <span class="chip-badge-tag">${CLAN_BADGE_LABEL[clanKey]}</span>
         <img src="${CLAN_BADGES[clanKey]}" alt="${CLAN_BADGE_LABEL[clanKey]}">
       </span>
       <span class="chip-info">
         <span class="chip-name">${escHtml(a.name)}</span>
         ${statHtml}
+        ${chipUpdatedHtml(a.slug)}
       </span>
-      ${a.locked ? `<span class="chip-lock" title="Locked — anyone can edit its binder; only admin can rename or remove it">🔒</span>` : ''}
       ${canManage ? `<span class="chip-pencil" data-action="edit-account-name" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Rename account" : "Rename your account"}">✎</span>` : ''}
       ${canManage ? `<span class="chip-x" data-action="delete-account" data-account="${escAttr(a.slug)}" title="${isAdmin() ? "Delete account" : "Remove your account"}">✕</span>` : ''}
     </button>`;
@@ -1535,18 +1726,22 @@ function renderAccountBar(){
     <div class="account-panel-head">
       <span class="label">Accounts<span class="account-count">${accountsMeta.list.length}</span></span>
       <div class="account-sort">
-        <button type="button" class="sort-btn${filterApOnly?' active':''}" data-action="toggle-ap-filter">Only in AP</button>
+        <button type="button" class="ap-toggle-btn${filterApOnly?' active':''}" data-action="toggle-ap-filter" role="switch" aria-checked="${filterApOnly?'true':'false'}" title="Show only accounts currently in AP">
+          <span class="ap-toggle-track"><span class="ap-toggle-thumb"></span></span>
+          Only in AP
+        </button>
         ${accountsMeta.list.length > 1 ? `
+        <span class="sort-divider"></span>
         <span class="sort-label">Sort:</span>
-        ${ACCOUNT_SORT_OPTIONS.map(([val,label])=>`<button type="button" class="sort-btn${accountSortMode===val?' active':''}" data-action="sort-accounts" data-sort="${val}">${label}</button>`).join("")}
+        ${ACCOUNT_SORT_OPTIONS.map(([val,label,icon])=>`<button type="button" class="sort-btn${accountSortMode===val?' active':''}" data-action="sort-accounts" data-sort="${val}"><span class="sort-icon">${icon}</span>${label}</button>`).join("")}
         ` : ''}
       </div>
     </div>
     <div class="account-grid">
-      ${chips || `<span style="color:var(--ink-faint);font-size:12.5px;">${filterApOnly ? 'No AP accounts to show. try turning off "Only in AP".' : 'No accounts yet. be the first to add one.'}</span>`}
+      ${chips || `<span style="color:var(--ink-faint);font-size:12.5px;">${filterApOnly ? 'No AP accounts to show. Try turning off "Only in AP".' : 'No accounts yet. Be the first to add one.'}</span>`}
     </div>
   </div>
-  <p class="badge-hint">💡 Tap an account's badge to mark it in AP / not in AP accounts can't trade until switched back.</p>`;
+  <p class="badge-hint">💡 Tap an account's badge to mark it in or out of AP. Accounts not in AP can't trade until switched back.</p>`;
 }
 
 function focusAccountInput(){
@@ -1580,11 +1775,34 @@ function renderViewTabs(){
     ["binder","Binder"],
     ["matrix","Collection Matrix"],
     ["trade","Trade Finder"],
-    ["data","Import / Export"]
+    ["data","Import / Export"],
+    ["search","Search"]
   ];
   return `<div class="view-tabs">${tabs.map(([k,label])=>`
     <button class="view-tab ${currentView===k?'active':''}" data-action="set-view" data-view="${k}">${label}</button>
   `).join("")}</div>`;
+}
+
+function accountDuplicates(slug){
+  return activeCards()
+    .map(c=>({card:c, count:getCount(slug,c.id)}))
+    .filter(d=>d.count>=2)
+    .sort((a,b)=>b.count-a.count || a.card.name.localeCompare(b.card.name));
+}
+function renderDupSummary(acct){
+  const dups = accountDuplicates(acct);
+  if(!dups.length){
+    return `<div class="dup-summary empty">🗂️ <span>No duplicates yet. Every card collected is a single copy.</span></div>`;
+  }
+  const totalExtra = dups.reduce((s,d)=>s+(d.count-1),0);
+  const chips = dups.map(d=>`
+    <span class="dup-chip" data-action="goto-card-account" data-account="${escAttr(acct)}" data-card="${escAttr(d.card.id)}" title="Jump to ${escAttr(d.card.name)}">
+      ${escHtml(d.card.name)} <b>×${d.count}</b>
+    </span>`).join("");
+  return `<div class="dup-summary">
+    <span class="dup-summary-label">🗂️ Duplicates <span class="dup-summary-count">${dups.length} card${dups.length===1?'':'s'} · ${totalExtra} extra to trade</span></span>
+    <div class="dup-chip-row">${chips}</div>
+  </div>`;
 }
 
 function renderBinderView(){
@@ -1601,11 +1819,13 @@ function renderBinderView(){
     const cards = cardsInCat(cat.key);
     const owned = cards.filter(c=>getCount(acct,c.id)>0).length;
     const p = cards.length ? Math.round(owned/cards.length*100) : 0;
+    const complete = cards.length > 0 && owned === cards.length;
     return `
     <div class="cat-card ${currentCategory===cat.key?'selected':''}" data-action="set-category" data-cat="${cat.key}" style="--catcolor:${cat.hex}">
       <div class="cat-name"><span class="cat-dot" style="background:${cat.color}"></span>${cat.label}</div>
       <div class="cat-progress-track"><div class="cat-progress-fill" style="width:${p}%;background:${cat.color}"></div></div>
       <div class="cat-count">${owned} / ${cards.length} collected</div>
+      ${complete ? `<span class="cat-complete-tick" title="${owned}/${cards.length} ${cat.label} cards collected">✓</span>` : ''}
     </div>`;
   }).join("");
 
@@ -1614,13 +1834,16 @@ function renderBinderView(){
   return `
   <div class="overall-bar" style="--pct:${pct}">
     <div class="ring"><span>${pct}%</span></div>
-    <div class="txt"><b>${escHtml(accName(acct))}</b> has collected <b>${ownedTotal}</b> of <b>${all.length}</b> tradeable cards.</div>
+    <div class="txt-wrap">
+      <div class="txt"><b>${escHtml(accName(acct))}</b> has collected <b>${ownedTotal}</b> of <b>${all.length}</b> tradeable cards.</div>
+      <span class="last-updated-tag" style="color:${updatedRecencyColor(collectionMeta[acct])};border-color:${updatedRecencyColor(collectionMeta[acct])};background:color-mix(in srgb, ${updatedRecencyColor(collectionMeta[acct])} 14%, transparent)" title="Reflects the last time a card count changed for this account">🕒 ${escHtml(lastUpdatedText(acct))}</span>
+    </div>
     <span class="updated-edit-group">
-      <span class="last-updated-tag" title="Reflects the last time a card count changed for this account">${escHtml(lastUpdatedText(acct))}</span>
       ${!editable ? `<span class="readonly-tag">Not your account</span>
       <button type="button" class="edit-binder-btn" data-action="edit-other-account">Edit this binder</button>` : ''}
     </span>
   </div>
+  ${renderDupSummary(acct)}
   <div class="cat-row">${catCards}</div>
   <div class="binder-page">
     <div class="card-grid">${cardsHtml}</div>
@@ -1671,6 +1894,67 @@ function scrollToCategory(catKey){
     if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
   });
 }
+
+/* ---------- Search: accounts-wide card lookup ---------- */
+function focusSearchInput(){
+  requestAnimationFrame(()=>{
+    const input = document.getElementById("card-search-input");
+    if(input){ input.focus(); const v=input.value; input.value=""; input.value=v; }
+  });
+}
+function matchingSearchCards(query){
+  const q = query.trim().toLowerCase();
+  if(!q) return [];
+  return activeCards().filter(c => c.name.toLowerCase().includes(q));
+}
+function renderSearchResults(){
+  const q = searchQuery.trim();
+  if(!q){
+    return `<div class="search-empty">🔍 Start typing a card name to see which accounts have it. Results jump straight to that card in their binder.</div>`;
+  }
+  const matches = matchingSearchCards(searchQuery);
+  if(!matches.length){
+    return `<div class="search-empty">No cards match "${escHtml(q)}".</div>`;
+  }
+  const accounts = accountsMeta.list;
+  return matches.map(card=>{
+    const cat = catInfo(card.category);
+    const img = imageFor(card);
+    const imgVar = img ? `--cardimg:url('${img.replace(/'/g,"%27")}');` : "";
+    const owners = accounts
+      .map(a=>({acct:a, count:getCount(a.slug, card.id)}))
+      .filter(o=>o.count>0)
+      .sort((a,b)=>b.count-a.count || a.acct.name.localeCompare(b.acct.name));
+    const ownerHtml = owners.length
+      ? owners.map(o=>`
+        <button type="button" class="search-account-pill" data-action="goto-card-account" data-account="${escAttr(o.acct.slug)}" data-card="${escAttr(card.id)}">
+          ${escHtml(o.acct.name)} <b>×${o.count}</b>
+        </button>`).join("")
+      : `<span class="search-no-owners">No accounts have collected this card yet.</span>`;
+    return `
+    <div class="search-result-card">
+      <div class="search-result-head">
+        <div class="search-result-art" style="--catcolor:${cat.hex};--catbg:${cat.dim};${imgVar}"></div>
+        <div class="search-result-meta">
+          <span class="search-result-name">${escHtml(card.name)}</span>
+          <span class="search-result-cat" style="color:${cat.color}"><span class="cat-dot" style="background:${cat.color}"></span>${cat.label}</span>
+        </div>
+        <span class="search-owner-count">${owners.length} account${owners.length===1?'':'s'}</span>
+      </div>
+      <div class="search-account-list">${ownerHtml}</div>
+    </div>`;
+  }).join("");
+}
+function renderSearchView(){
+  return `
+  <div class="panel-box search-box">
+    <h3>🔍 Search every account</h3>
+    <p>Find a card by name and jump straight to it in whichever account's binder has it.</p>
+    <input type="text" id="card-search-input" class="search-input" placeholder="e.g. barbarian, dragon, hog rider…" autocomplete="off" value="${escAttr(searchQuery)}">
+  </div>
+  <div id="search-results" class="search-results">${renderSearchResults()}</div>`;
+}
+
 const CARD_COLORS = {
   "barbarian":"#FFC93C", "archer":"#FF4FA3", "giant":"#4FA8FF",
   "goblin":"#5BE85A", "wall-breaker":"#FF5A36", "balloon":"#FF6A3C",
@@ -1771,7 +2055,8 @@ function renderMatrixView(){
   CATEGORIES.forEach(cat=>{
     rows += `<tr class="cat-sep" style="--catcolor:${cat.hex}"><td class="cat-sep-label">${cat.label}</td><td colspan="${accts.length}"></td></tr>`;
     cardsInCat(cat.key).forEach(card=>{
-      rows += `<tr><td class="rowlabel">${escHtml(card.name)}</td>` +
+      const selected = selectedMatrixRow === card.id;
+      rows += `<tr class="${selected?'row-selected':''}" data-action="select-matrix-row" data-card="${escAttr(card.id)}"><td class="rowlabel">${escHtml(card.name)}</td>` +
         accts.map(a=>{
           const n = getCount(a.slug, card.id);
           const cls = n>=2 ? "cell-dup" : n===1 ? "cell-1" : "cell-0";
@@ -1874,7 +2159,7 @@ function renderTradeView(){
   // Partner picker — a proper "choose an opponent" gallery instead of a bare row of chips.
   let partnerPickerHtml;
   if(!partners.length){
-    partnerPickerHtml = `<div class="empty-note">Nobody has a duplicate ${escHtml(accName(acct))} needs while also needing one of ${escHtml(accName(acct))}'s duplicates in the same category — check back once more cards are collected.</div>`;
+    partnerPickerHtml = `<div class="empty-note">Nobody has a duplicate ${escHtml(accName(acct))} needs while also needing one of ${escHtml(accName(acct))}'s duplicates in the same category. Check back once more cards are collected.</div>`;
   } else {
     const contested = computeContestedPartners(acct, partners);
     partnerPickerHtml = `
@@ -1911,7 +2196,7 @@ function renderTradeView(){
 
     const cats = computeSwapCategories(acct, tradePartner);
     if(!cats.length){
-      swapSectionsHtml += `<div class="empty-note">No matching category right now — ${escHtml(accName(acct))} and ${escHtml(accName(tradePartner))} don't each have a duplicate the other needs in the same category.</div>`;
+      swapSectionsHtml += `<div class="empty-note">No matching category right now. ${escHtml(accName(acct))} and ${escHtml(accName(tradePartner))} don't each have a duplicate the other needs in the same category.</div>`;
     } else {
       swapSectionsHtml += cats.map(({cat, iGive, iGet})=>{
         const choice = swapChoice[cat.key] || {};
@@ -2034,7 +2319,7 @@ function renderTradeView(){
             <span class="trade-direction">${directionSymbol}</span>
           </div>
         </div>
-        <span>${escHtml(t.cardName)} <span class="tag" style="background:${cat.hex};margin-left:6px;">${cat.label ? cat.label.replace(' Troops','') : ''}</span> — <span style="color:var(--ink-dim);">${escHtml(t.fromName)} → ${escHtml(t.toName)}</span></span>
+        <span>${escHtml(t.cardName)} <span class="tag" style="background:${cat.hex};margin-left:6px;">${cat.label ? cat.label.replace(' Troops','') : ''}</span> · <span style="color:var(--ink-dim);">${escHtml(t.fromName)} → ${escHtml(t.toName)}</span></span>
       </div>
       <div class="trade-item-right">
         <span class="log-time">${timeAgo(t.ts)}</span>
@@ -2053,7 +2338,22 @@ function renderTradeView(){
   <div class="panel-box">
     <h3 style="margin-bottom:10px;">Trade history for ${escHtml(accName(acct))}</h3>
     ${logHtml}
+  </div>
+  <div class="panel-box">
+    <h3 style="margin-bottom:10px;">Global activity</h3>
+    <p style="margin:0 0 10px;">Every change made across the whole gallery, most recent first.</p>
+    ${renderGlobalActivity()}
   </div>`;
+}
+
+function renderGlobalActivity(){
+  const entries = (activityLog.entries||[]).slice().reverse().slice(0,150);
+  if(!entries.length) return `<div class="empty-note">Nothing logged yet.</div>`;
+  return `<div class="activity-list">${entries.map(a=>`
+    <div class="activity-item">
+      <span class="activity-text">${escHtml(a.text)}</span>
+      <span class="activity-time mono" title="${escAttr(fullTimestamp(a.ts))}">${timeAgo(a.ts)}</span>
+    </div>`).join("")}</div>`;
 }
 
 function buildAccountsExport(){
@@ -2121,8 +2421,19 @@ function attachHandlers(){
   const app = document.getElementById("app");
   app.addEventListener("click", onClick);
   app.addEventListener("change", onChange);
+  app.addEventListener("input", onInput);
   app.addEventListener("keydown", onAccountNameKeyDown);
   app.addEventListener("focusout", onAccountNameFocusOut);
+}
+
+// Live search-as-you-type: patches only the results container so the input never loses focus.
+function onInput(e){
+  const t = e.target;
+  if(t && t.id === "card-search-input"){
+    searchQuery = t.value;
+    const resultsEl = document.getElementById("search-results");
+    if(resultsEl) resultsEl.innerHTML = renderSearchResults();
+  }
 }
 
 function onAccountNameKeyDown(e){
@@ -2160,6 +2471,12 @@ function onClick(e){
   if(action==="refresh-now"){ flashStatus("You're already synced in real time."); return; }
 
   if(action==="set-view"){ currentView = el.dataset.view; render(); return; }
+  if(action==="select-matrix-row"){
+    const id = el.dataset.card;
+    selectedMatrixRow = (selectedMatrixRow===id) ? null : id;
+    render();
+    return;
+  }
   if(action==="set-category"){ scrollToCategory(el.dataset.cat); return; }
   if(action==="sort-accounts"){ accountSortMode = el.dataset.sort; render(); return; }
   if(action==="toggle-ap-filter"){ filterApOnly = !filterApOnly; render(); return; }
@@ -2179,6 +2496,25 @@ function onClick(e){
   }
 
   if(action==="select-account"){ viewingAccount = el.dataset.account; editOverride = false; recomputeSettings(); render(); return; }
+  if(action==="goto-card-account"){
+    const slug = el.dataset.account;
+    const cardId = el.dataset.card;
+    if(!slug || !accountBySlug(slug)) return;
+    viewingAccount = slug;
+    editOverride = false;
+    recomputeSettings();
+    currentView = "binder";
+    render();
+    requestAnimationFrame(()=>{
+      const target = document.getElementById('slot-'+cardId);
+      if(target){
+        target.scrollIntoView({behavior:'smooth', block:'center'});
+        target.classList.add('search-highlight');
+        setTimeout(()=>target.classList.remove('search-highlight'), 1600);
+      }
+    });
+    return;
+  }
   if(action==="cycle-clan-badge"){
     e.stopPropagation();
     const slug = el.dataset.account;
@@ -2188,9 +2524,11 @@ function onClick(e){
     if(!canToggleClan) return;
     const cur = clanOf(target);
     const next = CLAN_BADGE_ORDER[(CLAN_BADGE_ORDER.indexOf(cur)+1) % CLAN_BADGE_ORDER.length];
-    updateDoc(doc(db,"accounts",slug), { clan: next }).catch(err=>{
+    updateDoc(doc(db,"accounts",slug), { clan: next }).then(()=>{
+      logActivity(`${target.name} was marked as ${CLAN_BADGE_LABEL[next]==='AP' ? 'in AP' : 'not in AP'}`);
+    }).catch(err=>{
       console.error("update clan badge failed", err);
-      flashStatus("⚠ Couldn't update clan badge.");
+      flashStatus("Couldn't update the clan badge.");
     });
     return;
   }
@@ -2288,7 +2626,7 @@ function onClick(e){
   if(action==="copy-export"){
     const box = document.getElementById("export-box");
     box.select();
-    navigator.clipboard?.writeText(box.value).then(()=>flashStatus("Copied to clipboard.")).catch(()=>flashStatus("Couldn't copy — select and copy manually."));
+    navigator.clipboard?.writeText(box.value).then(()=>flashStatus("Copied to clipboard.")).catch(()=>flashStatus("Couldn't copy. Select and copy manually."));
     return;
   }
 
@@ -2318,7 +2656,9 @@ function onClick(e){
     if(confirm("Remove this card from the shared roster? Collected counts for it will be lost across every account.")){
       (async ()=>{
         await withFreshRoster(latest=>{
+          const card = latest.cards.find(c=>c.id===id);
           latest.cards = latest.cards.filter(c=>c.id!==id);
+          return card ? `Removed "${card.name}" from the card list` : null;
         });
         render();
       })();
@@ -2336,6 +2676,7 @@ function onClick(e){
         let id = slugify(name), suffix = 1;
         while(latest.cards.find(c=>c.id===id)){ id = slugify(name)+'-'+(++suffix); }
         latest.cards.push({id, name, category: catSelect.value, excluded:false});
+        return `Added "${name}" to the card list`;
       });
       render();
     })();
@@ -2369,10 +2710,12 @@ function onChange(e){
     (async ()=>{
       await withFreshRoster(latest=>{
         const card = latest.cards.find(c=>c.id===cardId);
-        if(!card) return;
-        if(editType==="name") card.name = value;
-        if(editType==="category") card.category = value;
-        if(editType==="excluded") card.excluded = value;
+        if(!card) return null;
+        let note = null;
+        if(editType==="name"){ note = `Renamed "${card.name}" to "${value}"`; card.name = value; }
+        if(editType==="category"){ note = `Changed the category for "${card.name}"`; card.category = value; }
+        if(editType==="excluded"){ note = value ? `Excluded "${card.name}" from tracking` : `Brought "${card.name}" back into tracking`; card.excluded = value; }
+        return note;
       });
       if(editType!=="name") render();
     })();
