@@ -196,7 +196,7 @@ header.app-head::before{
 /* Give chips a little more breathing room now names wrap instead of truncating. */
 .account-grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr));}
 .chip-info{display:flex;flex-direction:column;align-items:flex-start;flex:1;min-width:0;line-height:1.2;text-align:left;}
-/* Names read out in full now — no more mid-word ellipsis truncation. */
+/* Names read out in full now, no more mid-word ellipsis truncation. */
 .chip-name{max-width:100%;white-space:normal;overflow-wrap:break-word;word-break:break-word;}
 .chip-stat{font-size:9.5px;font-weight:700;color:var(--ink-faint);margin-top:1px;white-space:nowrap;}
 .chip.active .chip-stat{color:#241a05;opacity:.8;}
@@ -543,6 +543,15 @@ table.matrix tbody tr.row-selected td.cell-dup{background:rgba(232,184,75,.28);}
 
 /* ---------- Partner picker ---------- */
 .partner-picker-label{font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:var(--ink-faint);font-weight:700;margin:0 0 10px;}
+
+.trade-mode-toggle{display:flex;gap:8px;margin:0 0 10px;}
+.trade-mode-btn{
+  flex:1 1 0;padding:10px 12px;border-radius:11px;border:1.5px solid var(--line);
+  background:var(--bg-elevated);color:var(--ink-dim);font-weight:700;font-size:13px;
+  cursor:pointer;font-family:inherit;transition:background .15s,color .15s,border-color .15s;
+}
+.trade-mode-btn.active{border-color:var(--gold);color:var(--gold);background:linear-gradient(180deg, color-mix(in srgb, var(--gold) 9%, var(--panel)), var(--panel));}
+.trade-mode-hint{margin:0 0 16px;font-size:12.5px;color:var(--ink-dim);}
 .partner-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:20px;}
 .partner-card{
   position:relative;display:flex;align-items:center;gap:10px;padding:11px 30px 11px 12px;
@@ -1019,7 +1028,7 @@ table.matrix tbody tr.row-selected td.cell-dup{background:rgba(232,184,75,.28);}
 }
 
 
-/* Trade Finder — prominent "Trade offered" action */
+/* Trade Finder: prominent "Trade offered" action */
 .swap-actions .trade-offer-btn{
   display:block;
   margin:14px 0 3px;
@@ -1213,7 +1222,7 @@ const DEFAULT_CARDS = [
 
 const SCHEMA_VERSION = 2;
 
-// Clan badges an account can fly next to its name — persisted per-account (accounts/{slug}.clan)
+// Clan badges an account can fly next to its name, persisted per-account (accounts/{slug}.clan)
 // so it syncs across every device viewing the gallery.
 const CLAN_BADGES = {
   AP: "https://api-assets.clashofclans.com/badges/70/a_uwHX3A0FHVcsXdVHa04ivil4-ajy5FOA7paU7ndSg.png",
@@ -1222,7 +1231,7 @@ const CLAN_BADGES = {
 const CLAN_BADGE_ORDER = ["AP","OTHER"];
 const CLAN_BADGE_LABEL = { AP: "AP", OTHER: "?" };
 // Accounts created before this change (or never toggled) still say clan:"AP" or have no
-// clan field at all — both default to AP so nobody gets silently bucketed as "not in AP".
+// clan field at all. Both default to AP so nobody gets silently bucketed as "not in AP".
 function clanOf(a){ return (a && a.clan === "OTHER") ? "OTHER" : "AP"; }
 function inAP(a){ return clanOf(a) === "AP"; }
 
@@ -1230,7 +1239,7 @@ function inAP(a){ return clanOf(a) === "AP"; }
 let roster = { cards: DEFAULT_CARDS.map(c=>({...c})), schemaVersion: SCHEMA_VERSION }; // { cards:[...], schemaVersion }
 let accountsMeta = { list: [] };  // { list:[{slug, name, locked, ownerUid, clan}] }
 let collections = {};             // { slug: { cardId: count, _updatedAt: Timestamp } }
-let collectionMeta = {};          // { slug: millis } — last time that collection was written to, for "Last updated" labels
+let collectionMeta = {};          // { slug: millis } last time that collection was written to, for "Last updated" labels
 let tradeLog = { entries: [] };   // { entries:[{id, fromSlug, toSlug, fromName, toName, cardId, cardName, ts}] }
 let settings = { myAccount: null, myAccounts: [] }; // derived locally from accountsMeta + currentUid
 
@@ -1245,7 +1254,7 @@ let accountSortMode = "name"; // "name" | "collected" | "trades"
 let filterApOnly = false;    // account-grid + trade-finder filter: hide/exclude non-AP accounts
 let editOverride = false;    // when true, lets you edit the *viewed* account even if it isn't yours (resets on account switch)
 let selectedMatrixRow = null; // card id currently highlighted in the Collection Matrix, or null
-let activityLog = { entries: [] }; // { entries:[{id, text, ts}] } — a running log of every change made in the tracker
+let activityLog = { entries: [] }; // { entries:[{id, text, ts}] } a running log of every change made in the tracker
 
 // Tutorial state
 let tutorialActive = false;
@@ -1254,6 +1263,7 @@ let tutorialSeen = false; // gates the guide button's firefly glow, not an auto-
 let pendingTradeOffers = new Map(); // key "from::to::category" -> {from, to, category, giveCardId, giveCardName, getCardId, getCardName}
 let tradePartner = null;            // slug of the account the viewingAccount is currently trading with
 let swapChoice = {};                // category key -> {give: cardId, get: cardId}, last picked options per category
+let tradeMode = 'swap';             // 'swap' (mutual need) | 'uneven' (only the partner's side needs to fill a gap)
 let lastSyncTs = null;
 let statusTimer = null;
 
@@ -1310,12 +1320,12 @@ function recomputeSettings(){
   settings.myAccounts = mine;
   settings.myAccount = mine.includes(viewingAccount) ? viewingAccount : (mine[0] || null);
 }
-// Anyone signed in can edit any account's binder — including locked (pre-established)
+// Anyone signed in can edit any account's binder, including locked (pre-established)
 // ones, since those belong to friends who can't sign in and edit their own. Your own
 // account is always editable; anyone else's requires explicitly flipping into edit mode
-// via the mode-bar (editOverride), which resets to off every time you switch accounts —
-// see the "select-account" handler. Locked accounts still can't be renamed or deleted by
-// non-admins — that protection is unrelated to who can log card counts.
+// via the mode-bar (editOverride), which resets to off every time you switch accounts.
+// See the "select-account" handler. Locked accounts still can't be renamed or deleted by
+// non-admins, that protection is unrelated to who can log card counts.
 function isOwnAccount(slug){
   const a = accountBySlug(slug);
   return !!(a && a.ownerUid && currentUid && a.ownerUid === currentUid);
@@ -1625,7 +1635,7 @@ async function boot(){
 
   attachTutorialHandlers();
   try{ tutorialSeen = localStorage.getItem(TUTORIAL_KEY) === "1"; }catch(e){}
-  // No longer auto-launches on first visit — the Guide button glows instead until clicked.
+  // No longer auto-launches on first visit. The Guide button glows instead until clicked.
 }
 boot();
 
@@ -1757,8 +1767,8 @@ function renderAccountBar(){
         <input type="text" class="chip-input" id="account-name-input" value="${escAttr(a.name)}" maxlength="24" autocomplete="off">
       </span>`;
     }
-    const canManage = isAdmin() || (!a.locked && a.ownerUid === currentUid); // rename / delete — stays owner-or-admin
-    const canToggleClan = !!currentUid; // AP status — open to anyone signed in, locked or not
+    const canManage = isAdmin() || (!a.locked && a.ownerUid === currentUid); // rename / delete stays owner-or-admin
+    const canToggleClan = !!currentUid; // AP status, open to anyone signed in, locked or not
     const clanKey = clanOf(a);
     const otherClan = clanKey !== "AP";
     let statHtml = "";
@@ -2142,37 +2152,42 @@ function renderMatrixView(){
 }
 
 /* ---------------- Trade Finder: same-category swaps between the selected account and a partner ---------------- */
-// For a given account + potential partner, find every category where BOTH sides have
-// something to give (a duplicate the other one is missing) — since a trade is a same-category
-// swap, a category only counts if both accounts bring a duplicate to the table.
-function computeSwapCategories(acct, partnerSlug){
+// For a given account + potential partner, find every category where both sides have
+// something to give. mode 'swap' requires a true mutual match: acct's card fills a gap
+// for the partner AND the partner's card fills a gap for acct. mode 'uneven' only
+// requires the first half: acct still has to give the partner something they're
+// missing, but the card acct gets back can be any spare the partner has, even one
+// acct already owns. That's still a real 2-card trade, it's just lopsided in who
+// benefits: the partner completes a card, acct just ends up with a different duplicate.
+function computeTradeCategories(acct, partnerSlug, mode){
   if(!acct || !partnerSlug || acct===partnerSlug) return [];
   const out = [];
   CATEGORIES.forEach(cat=>{
     const cardsHere = cardsInCat(cat.key);
     const iGive = cardsHere.filter(c => getCount(acct,c.id)>=2 && getCount(partnerSlug,c.id)===0);
-    const iGet  = cardsHere.filter(c => getCount(partnerSlug,c.id)>=2 && getCount(acct,c.id)===0);
+    const iGet  = mode==='uneven'
+      ? cardsHere.filter(c => getCount(partnerSlug,c.id)>=2)
+      : cardsHere.filter(c => getCount(partnerSlug,c.id)>=2 && getCount(acct,c.id)===0);
     if(iGive.length && iGet.length) out.push({cat, iGive, iGet});
   });
   return out;
 }
 
-// Only accounts that can complete an actual swap with acct — i.e. they also hold a
-// duplicate acct needs, in a category where acct also holds a duplicate they need.
-function eligibleTradePartners(acct){
+// Only accounts that can complete an actual trade with acct in the given mode.
+function eligibleTradePartners(acct, mode){
   if(!acct) return [];
-  return accountsMeta.list.filter(a => a.slug!==acct && inAP(a) && computeSwapCategories(acct, a.slug).length>0);
+  return accountsMeta.list.filter(a => a.slug!==acct && inAP(a) && computeTradeCategories(acct, a.slug, mode).length>0);
 }
 
 // A card acct could give away only exists in limited supply (owned count - 1 kept copy).
 // If more eligible partners are lined up for that same card than acct has spares of it,
-// only one of them can actually complete that trade — flag every partner competing for
+// only one of them can actually complete that trade. Flag every partner competing for
 // a card where demand outstrips supply, so the UI can warn "first offer wins".
-function computeContestedPartners(acct, partners){
+function computeContestedPartners(acct, partners, mode){
   const spareOf = {};       // cardId -> spare copies acct can give away
   const demand = {};        // cardId -> Set of partner slugs who could receive it
   partners.forEach(p=>{
-    computeSwapCategories(acct, p.slug).forEach(({iGive})=>{
+    computeTradeCategories(acct, p.slug, mode).forEach(({iGive})=>{
       iGive.forEach(c=>{
         if(spareOf[c.id]===undefined) spareOf[c.id] = Math.max(0, getCount(acct,c.id)-1);
         (demand[c.id] || (demand[c.id]=new Set())).add(p.slug);
@@ -2204,12 +2219,21 @@ function renderTradeView(){
     </div>`;
   }
 
-  const partners = eligibleTradePartners(acct);
+  const modeToggleHtml = `
+  <div class="trade-mode-toggle">
+    <button type="button" class="trade-mode-btn ${tradeMode==='swap'?'active':''}" data-action="set-trade-mode" data-mode="swap">⇄ Swap</button>
+    <button type="button" class="trade-mode-btn ${tradeMode==='uneven'?'active':''}" data-action="set-trade-mode" data-mode="uneven">🎁 Gift a card</button>
+  </div>
+  <p class="trade-mode-hint">${tradeMode==='swap'
+    ? 'Both sides give up a duplicate for something they need.'
+    : `Normal trading only works if you both need what the other has. This is for when someone needs a card of yours but you don't need anything specific back. Gift it to them and they toss back a spare of their own as a thanks, even if it's not something you were after.`}</p>`;
+
+  const partners = eligibleTradePartners(acct, tradeMode);
   if(!tradePartner || !partners.find(p=>p.slug===tradePartner)){
     tradePartner = partners[0] ? partners[0].slug : null;
   }
 
-  // "You" banner — always keep the account currently being viewed front and center.
+  // "You" banner: always keep the account currently being viewed front and center.
   const heroHtml = `
   <div class="trade-hero">
     <div class="avatar-circle">${escHtml(avatarInitial(accName(acct)))}</div>
@@ -2220,17 +2244,19 @@ function renderTradeView(){
     <div class="updated" title="Keep this fresh by tapping + / − in the Binder, or Trade offered / Trade accepted here">${escHtml(lastUpdatedText(acct))}</div>
   </div>`;
 
-  // Partner picker — a proper "choose an opponent" gallery instead of a bare row of chips.
+  // Partner picker: a proper "choose an opponent" gallery instead of a bare row of chips.
   let partnerPickerHtml;
   if(!partners.length){
-    partnerPickerHtml = `<div class="empty-note">Nobody has a duplicate ${escHtml(accName(acct))} needs while also needing one of ${escHtml(accName(acct))}'s duplicates in the same category. Check back once more cards are collected.</div>`;
+    partnerPickerHtml = tradeMode==='swap'
+      ? `<div class="empty-note">Nobody has a duplicate ${escHtml(accName(acct))} needs while also needing one of ${escHtml(accName(acct))}'s duplicates in the same category. Check back once more cards are collected.</div>`
+      : `<div class="empty-note">Nobody needs a duplicate ${escHtml(accName(acct))} has spare right now. Check back once more cards are collected.</div>`;
   } else {
-    const contested = computeContestedPartners(acct, partners);
+    const contested = computeContestedPartners(acct, partners, tradeMode);
     partnerPickerHtml = `
     <div class="partner-picker-label">Choose someone to trade with</div>
     <div class="partner-grid">
       ${partners.map(p=>{
-        const n = computeSwapCategories(acct, p.slug).length;
+        const n = computeTradeCategories(acct, p.slug, tradeMode).length;
         const active = p.slug===tradePartner;
         const isContested = contested.has(p.slug);
         return `
@@ -2258,9 +2284,11 @@ function renderTradeView(){
       <span class="side">${escHtml(accName(tradePartner))}</span>
     </div>`;
 
-    const cats = computeSwapCategories(acct, tradePartner);
+    const cats = computeTradeCategories(acct, tradePartner, tradeMode);
     if(!cats.length){
-      swapSectionsHtml += `<div class="empty-note">No matching category right now. ${escHtml(accName(acct))} and ${escHtml(accName(tradePartner))} don't each have a duplicate the other needs in the same category.</div>`;
+      swapSectionsHtml += tradeMode==='swap'
+        ? `<div class="empty-note">No matching category right now. ${escHtml(accName(acct))} and ${escHtml(accName(tradePartner))} don't each have a duplicate the other needs in the same category.</div>`
+        : `<div class="empty-note">No matching category right now. ${escHtml(accName(tradePartner))} doesn't need any of ${escHtml(accName(acct))}'s duplicates.</div>`;
     } else {
       swapSectionsHtml += cats.map(({cat, iGive, iGet})=>{
         const choice = swapChoice[cat.key] || {};
@@ -2315,7 +2343,7 @@ function renderTradeView(){
                 : `<select data-role="get-card" data-cat="${cat.key}">
                     ${iGet.map(c=>`<option value="${escAttr(c.id)}" ${c.id===chosenGet?'selected':''}>${escHtml(c.name)} (×${getCount(tradePartner,c.id)-1} spare)</option>`).join("")}
                   </select>`}
-              <div class="receive-tag"><b>${escHtml(accName(acct))}</b> RECEIVES</div>
+              <div class="receive-tag"><b>${escHtml(accName(acct))}</b> RECEIVES${tradeMode==='uneven' && getCount(acct,chosenGet)>0 ? ' (already has one)' : ''}</div>
             </div>
           </div>
           <div class="swap-actions">
@@ -2331,8 +2359,20 @@ function renderTradeView(){
     }
   }
 
-  // Trade history involving this account, most recent first.
-  // The selected account's given-away card is red and received card is green.
+  return `
+  <div class="panel-box" style="margin-bottom:14px;">
+    <p style="margin:0;">Please re-enact the trades in-game down here as well. This helps keep the collection up-to-date.</p>
+  </div>
+  ${modeToggleHtml}
+  ${heroHtml}
+  ${partnerPickerHtml}
+  ${swapSectionsHtml}
+  ${renderTradeHistoryAndActivity(acct)}`;
+}
+
+// Trade history involving this account, most recent first, plus the global activity feed.
+// Shared by both swap mode and gift mode since they log to the same tradelog collection.
+function renderTradeHistoryAndActivity(acct){
   const log = (tradeLog.entries||[]).filter(t => t.aSlug===acct || t.bSlug===acct || t.fromSlug===acct || t.toSlug===acct).slice().reverse().slice(0,50);
   const logHtml = !log.length ? `<div class="empty-note">No trades logged yet for ${escHtml(accName(acct))}.</div>` : log.map(t=>{
     if(t.aGivesCardId){
@@ -2393,12 +2433,6 @@ function renderTradeView(){
   }).join("");
 
   return `
-  <div class="panel-box" style="margin-bottom:14px;">
-    <p style="margin:0;">Please re-enact the trades in-game down here as well. This helps keep the collection up-to-date.</p>
-  </div>
-  ${heroHtml}
-  ${partnerPickerHtml}
-  ${swapSectionsHtml}
   <div class="panel-box">
     <h3 style="margin-bottom:10px;">Trade history for ${escHtml(accName(acct))}</h3>
     ${logHtml}
@@ -2665,6 +2699,12 @@ function onClick(e){
     return;
   }
   if(action==="undo-trade"){ undoTrade(el.dataset.logid); return; }
+
+  if(action==="set-trade-mode"){
+    tradeMode = el.dataset.mode==='uneven' ? 'uneven' : 'swap';
+    render();
+    return;
+  }
 
   if(action==="admin-select-locked"){
     if(!isAdmin()) return;
