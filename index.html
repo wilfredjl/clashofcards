@@ -1642,6 +1642,7 @@ boot();
 /* ---------------- Rendering ---------------- */
 function render(){
   const app = document.getElementById("app");
+  if(currentView==='data' && !isAdmin()) currentView = 'binder';
   app.innerHTML = `
     ${renderHeader()}
     ${renderSyncBar()}
@@ -1651,7 +1652,7 @@ function render(){
     <div class="view ${currentView==='binder'?'active':''}" id="view-binder">${renderBinderView()}</div>
     <div class="view ${currentView==='matrix'?'active':''}" id="view-matrix">${renderMatrixView()}</div>
     <div class="view ${currentView==='trade'?'active':''}" id="view-trade">${renderTradeView()}</div>
-    <div class="view ${currentView==='data'?'active':''}" id="view-data">${renderDataView()}</div>
+    ${isAdmin() ? `<div class="view ${currentView==='data'?'active':''}" id="view-data">${renderDataView()}</div>` : ""}
     <div class="view ${currentView==='search'?'active':''}" id="view-search">${renderSearchView()}</div>
   `;
   attachHandlers();
@@ -1849,7 +1850,7 @@ function renderViewTabs(){
     ["binder","Binder"],
     ["matrix","Collection Matrix"],
     ["trade","Trade Finder"],
-    ["data","Import / Export"],
+    ...(isAdmin() ? [["data","Import / Export"]] : []),
     ["search","Search"]
   ];
   return `<div class="view-tabs">${tabs.map(([k,label])=>`
@@ -2568,7 +2569,11 @@ function onClick(e){
 
   if(action==="refresh-now"){ flashStatus("You're already synced in real time."); return; }
 
-  if(action==="set-view"){ currentView = el.dataset.view; render(); return; }
+  if(action==="set-view"){
+    const v = el.dataset.view;
+    if(v==="data" && !isAdmin()) return;
+    currentView = v; render(); return;
+  }
   if(action==="select-matrix-row"){
     const id = el.dataset.card;
     selectedMatrixRow = (selectedMatrixRow===id) ? null : id;
